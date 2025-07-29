@@ -1,0 +1,20 @@
+{
+  "path": "f:\\AIbiancheng\\yinshua\\dist",
+  "desc": "这是一个包装印刷算价系统前端项目，采用Vue3 + Element Plus开发，包含首页算价、材料数据库和工艺数据库三个主要模块，支持印刷成本计算和数据管理功能。每个模块都有独立的分类管理，支持数据持久化存储。",
+  "id": "4bfcc349af884a2f9fbf8b7df0072b81",
+  "data": {
+    "spaceKey": "4bfcc349af884a2f9fbf8b7df0072b81",
+    "connections": {
+      "webIDE": "https://4bfcc349af884a2f9fbf8b7df0072b81.ap-singapore.cloudstudio.club",
+      "preview": "https://4bfcc349af884a2f9fbf8b7df0072b81--{port}.ap-singapore.cloudstudio.club",
+      "api": "https://4bfcc349af884a2f9fbf8b7df0072b81--api.ap-singapore.cloudstudio.club",
+      "pty": "https://4bfcc349af884a2f9fbf8b7df0072b81--pty.ap-singapore.cloudstudio.club"
+    }
+  },
+  "config": {
+    "api": "https://4bfcc349af884a2f9fbf8b7df0072b81--api.ap-singapore.cloudstudio.club",
+    "pty": "https://4bfcc349af884a2f9fbf8b7df0072b81--pty.ap-singapore.cloudstudio.club",
+    "region": "ap-shanghai",
+    "spaceKey": "4bfcc349af884a2f9fbf8b7df0072b81"
+  }
+}
