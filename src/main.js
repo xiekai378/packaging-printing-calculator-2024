@@ -8,12 +8,14 @@ import App from './App.vue'
 import HomePage from './views/HomePage.vue'
 import MaterialDatabase from './views/MaterialDatabase.vue'
 import ProcessDatabase from './views/ProcessDatabase.vue'
+import PrintingProcessV2 from './views/PrintingProcessV2.vue'
 
 // 路由配置
 const routes = [
   { path: '/', name: 'Home', component: HomePage },
   { path: '/materials/:category', name: 'MaterialsByCategory', component: MaterialDatabase },
-  { path: '/processes/:category', name: 'ProcessesByCategory', component: ProcessDatabase },
+  { path: '/processes/printing', name: 'PrintingProcess', component: PrintingProcessV2 },
+  { path: '/processes/:category(surface|finishing)', name: 'ProcessesByCategory', component: ProcessDatabase },
   // 重定向默认路由
   { path: '/materials', redirect: '/materials/paper' },
   { path: '/processes', redirect: '/processes/printing' }

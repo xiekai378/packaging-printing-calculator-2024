@@ -1,180 +1,181 @@
 <template>
   <div class="home-page">
     <div class="page-header">
-      <h1>包装印刷算价</h1>
-      <p>填写基本信息，系统将自动计算印刷成本</p>
+      <h1 class="page-title">
+        <el-icon class="title-icon"><Calculator /></el-icon>
+        包装印刷报价系统
+      </h1>
+      <p class="page-subtitle">输入尺寸和数量，选择材料和工艺，快速获取精准报价</p>
     </div>
 
-    <el-row :gutter="20">
-      <!-- 左侧表单区域 -->
-      <el-col :span="16">
-        <el-card class="form-card">
+    <el-row :gutter="24" class="main-content">
+      <!-- 左侧：输入区域 -->
+      <el-col :span="10">
+        <el-card class="input-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <el-icon><Edit /></el-icon>
-              <span>基本信息</span>
+              <span>基础信息</span>
             </div>
           </template>
 
-          <el-form
-            ref="calculatorFormRef"
-            :model="formData"
-            :rules="formRules"
-            label-width="120px"
-            class="calculator-form"
-          >
-            <el-row :gutter="20">
-              <el-col :span="12">
-                <el-form-item label="产品名称" prop="productName">
-                  <el-input
-                    v-model="formData.productName"
-                    placeholder="请输入产品名称"
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="客户名称" prop="customerName">
-                  <el-input
-                    v-model="formData.customerName"
-                    placeholder="请输入客户名称"
-                  />
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <el-row :gutter="20">
-              <el-col :span="8">
-                <el-form-item label="长度(mm)" prop="length">
-                  <el-input-number
-                    v-model="formData.length"
-                    :min="1"
-                    :max="10000"
-                    placeholder="长度"
-                    style="width: 100%"
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="宽度(mm)" prop="width">
-                  <el-input-number
-                    v-model="formData.width"
-                    :min="1"
-                    :max="10000"
-                    placeholder="宽度"
-                    style="width: 100%"
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="数量(张)" prop="quantity">
-                  <el-input-number
-                    v-model="formData.quantity"
-                    :min="1"
-                    :max="1000000"
-                    placeholder="数量"
-                    style="width: 100%"
-                  />
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <el-row :gutter="20">
-              <el-col :span="12">
-                <el-form-item label="材料类型" prop="materialType">
-                  <el-select
-                    v-model="formData.materialType"
-                    placeholder="请选择材料类型"
-                    style="width: 100%"
-                    @change="onMaterialChange"
-                  >
-                    <el-option
-                      v-for="material in materialOptions"
-                      :key="material.id"
-                      :label="material.name"
-                      :value="material.id"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="材料规格" prop="materialSpec">
-                  <el-select
-                    v-model="formData.materialSpec"
-                    placeholder="请选择材料规格"
-                    style="width: 100%"
-                    :disabled="!formData.materialType"
-                  >
-                    <el-option
-                      v-for="spec in materialSpecs"
-                      :key="spec.id"
-                      :label="spec.name"
-                      :value="spec.id"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <el-row :gutter="20">
-              <el-col :span="12">
-                <el-form-item label="印刷工艺" prop="printProcess">
-                  <el-select
-                    v-model="formData.printProcess"
-                    placeholder="请选择印刷工艺"
-                    style="width: 100%"
-                    multiple
-                  >
-                    <el-option
-                      v-for="process in processOptions"
-                      :key="process.id"
-                      :label="process.name"
-                      :value="process.id"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="印刷颜色" prop="printColors">
-                  <el-select
-                    v-model="formData.printColors"
-                    placeholder="请选择印刷颜色"
-                    style="width: 100%"
-                  >
-                    <el-option label="单色" value="1" />
-                    <el-option label="双色" value="2" />
-                    <el-option label="四色" value="4" />
-                    <el-option label="专色" value="spot" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <el-form-item label="备注信息">
-              <el-input
-                v-model="formData.remarks"
-                type="textarea"
-                :rows="3"
-                placeholder="请输入备注信息"
-              />
+          <el-form :model="quoteForm" label-width="100px" size="large">
+            <!-- 尺寸输入 -->
+            <el-form-item label="产品尺寸">
+              <div class="size-input-group">
+                <el-input-number
+                  v-model="quoteForm.width"
+                  :min="1"
+                  :max="2000"
+                  placeholder="宽度"
+                  class="size-input"
+                  @change="calculateQuote"
+                />
+                <span class="size-separator">×</span>
+                <el-input-number
+                  v-model="quoteForm.height"
+                  :min="1"
+                  :max="2000"
+                  placeholder="高度"
+                  class="size-input"
+                  @change="calculateQuote"
+                />
+                <span class="size-unit">mm</span>
+              </div>
             </el-form-item>
 
-            <el-form-item>
-              <el-button type="primary" @click="calculatePrice" :loading="calculating">
-                <el-icon><Calculator /></el-icon>
-                计算价格
-              </el-button>
-              <el-button @click="resetForm">
-                <el-icon><Refresh /></el-icon>
-                重置表单
-              </el-button>
+            <!-- 数量输入 -->
+            <el-form-item label="印刷数量">
+              <el-input-number
+                v-model="quoteForm.quantity"
+                :min="1"
+                :max="1000000"
+                placeholder="请输入数量"
+                style="width: 100%"
+                @change="calculateQuote"
+              />
+              <span class="quantity-unit">张</span>
+            </el-form-item>
+
+            <!-- 材料选择 -->
+            <el-form-item label="选择材料">
+              <el-select
+                v-model="quoteForm.materialId"
+                placeholder="请选择材料"
+                style="width: 100%"
+                @change="calculateQuote"
+              >
+                <el-option
+                  v-for="material in materials"
+                  :key="material.id"
+                  :label="`${material.name} - ¥${material.standardPrice}/张`"
+                  :value="material.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+
+            <!-- 印刷工艺选择 -->
+            <el-form-item label="印刷工艺">
+              <el-select
+                v-model="quoteForm.printingProcess"
+                placeholder="请选择印刷工艺"
+                style="width: 100%"
+                @change="onPrintingProcessChange"
+              >
+                <el-option
+                  v-for="process in printingProcesses"
+                  :key="process.id"
+                  :label="process.name"
+                  :value="process.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+
+            <!-- 印刷规格选择 -->
+            <el-form-item label="印刷规格" v-if="availableSizes.length > 0">
+              <el-select
+                v-model="quoteForm.printingSize"
+                placeholder="请选择印刷规格"
+                style="width: 100%"
+                @change="calculateQuote"
+              >
+                <el-option
+                  v-for="size in availableSizes"
+                  :key="size.id"
+                  :label="`${size.name} (${size.specification})`"
+                  :value="size.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+
+            <!-- 印刷颜色选择 -->
+            <el-form-item label="印刷颜色" v-if="quoteForm.printingSize">
+              <el-select
+                v-model="quoteForm.printingColor"
+                placeholder="请选择印刷颜色"
+                style="width: 100%"
+                @change="calculateQuote"
+              >
+                <el-option
+                  v-for="color in printingColors"
+                  :key="color.id"
+                  :label="color.name"
+                  :value="color.id"
+                >
+                  <template #default>
+                    <el-tag :type="color.type" size="small">{{ color.name }}</el-tag>
+                  </template>
+                </el-option>
+              </el-select>
+            </el-form-item>
+
+            <!-- 表面工艺选择 -->
+            <el-form-item label="表面工艺">
+              <el-select
+                v-model="quoteForm.surfaceProcess"
+                placeholder="请选择表面工艺（可选）"
+                style="width: 100%"
+                clearable
+                @change="calculateQuote"
+              >
+                <el-option
+                  v-for="process in surfaceProcesses"
+                  :key="process.id"
+                  :label="`${process.name} - ¥${process.price}/张`"
+                  :value="process.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+
+            <!-- 后道工艺选择 -->
+            <el-form-item label="后道工艺">
+              <el-select
+                v-model="quoteForm.finishingProcess"
+                placeholder="请选择后道工艺（可选）"
+                style="width: 100%"
+                clearable
+                @change="calculateQuote"
+              >
+                <el-option
+                  v-for="process in finishingProcesses"
+                  :key="process.id"
+                  :label="`${process.name} - ¥${process.price}/张`"
+                  :value="process.id"
+                >
+                </el-option>
+              </el-select>
             </el-form-item>
           </el-form>
         </el-card>
       </el-col>
 
-      <!-- 右侧结果区域 -->
-      <el-col :span="8">
-        <el-card class="result-card">
+      <!-- 右侧：报价结果 -->
+      <el-col :span="14">
+        <el-card class="result-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <el-icon><Money /></el-icon>
@@ -182,87 +183,99 @@
             </div>
           </template>
 
-          <div class="price-result" v-if="priceResult">
+          <!-- 产品预览 -->
+          <div class="product-preview" v-if="quoteForm.width && quoteForm.height">
+            <h3>产品预览</h3>
+            <div class="preview-box">
+              <div 
+                class="product-shape"
+                :style="{
+                  width: Math.min(200, quoteForm.width / 5) + 'px',
+                  height: Math.min(150, quoteForm.height / 5) + 'px'
+                }"
+              >
+                <span class="size-label">
+                  {{ quoteForm.width }} × {{ quoteForm.height }} mm
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 价格明细 -->
+          <div class="price-breakdown" v-if="quoteResult.total > 0">
+            <h3>价格明细</h3>
+            <el-table :data="priceDetails" border size="small">
+              <el-table-column prop="item" label="项目" width="120"></el-table-column>
+              <el-table-column prop="specification" label="规格/说明"></el-table-column>
+              <el-table-column prop="unitPrice" label="单价" width="80" align="right">
+                <template #default="scope">
+                  ¥{{ scope.row.unitPrice }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="quantity" label="数量" width="80" align="right"></el-table-column>
+              <el-table-column prop="subtotal" label="小计" width="100" align="right">
+                <template #default="scope">
+                  <span class="price-text">¥{{ scope.row.subtotal }}</span>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <!-- 总价显示 -->
             <div class="total-price">
-              <span class="label">总价：</span>
-              <span class="price">¥{{ priceResult.totalPrice }}</span>
-            </div>
-            
-            <el-divider />
-            
-            <div class="price-breakdown">
-              <h4>价格明细</h4>
-              <div class="breakdown-item">
-                <span>材料费用：</span>
-                <span>¥{{ priceResult.materialCost }}</span>
+              <div class="price-row">
+                <span class="label">材料费用：</span>
+                <span class="value">¥{{ quoteResult.materialCost.toFixed(2) }}</span>
               </div>
-              <div class="breakdown-item">
-                <span>印刷费用：</span>
-                <span>¥{{ priceResult.printCost }}</span>
+              <div class="price-row">
+                <span class="label">印刷费用：</span>
+                <span class="value">¥{{ quoteResult.printingCost.toFixed(2) }}</span>
               </div>
-              <div class="breakdown-item">
-                <span>工艺费用：</span>
-                <span>¥{{ priceResult.processCost }}</span>
+              <div class="price-row" v-if="quoteResult.surfaceCost > 0">
+                <span class="label">表面工艺：</span>
+                <span class="value">¥{{ quoteResult.surfaceCost.toFixed(2) }}</span>
               </div>
-              <div class="breakdown-item">
-                <span>人工费用：</span>
-                <span>¥{{ priceResult.laborCost }}</span>
+              <div class="price-row" v-if="quoteResult.finishingCost > 0">
+                <span class="label">后道工艺：</span>
+                <span class="value">¥{{ quoteResult.finishingCost.toFixed(2) }}</span>
               </div>
-            </div>
-
-            <el-divider />
-
-            <div class="unit-price">
-              <span class="label">单价：</span>
-              <span class="price">¥{{ priceResult.unitPrice }}</span>
+              <el-divider></el-divider>
+              <div class="price-row total">
+                <span class="label">总计：</span>
+                <span class="value total-amount">¥{{ quoteResult.total.toFixed(2) }}</span>
+              </div>
+              <div class="price-row unit">
+                <span class="label">单张成本：</span>
+                <span class="value">¥{{ (quoteResult.total / quoteForm.quantity).toFixed(4) }}</span>
+              </div>
             </div>
 
-            <div class="price-chart" ref="chartRef" v-if="priceResult"></div>
-
-            <el-button type="success" class="export-btn" @click="exportQuote">
-              <el-icon><Download /></el-icon>
-              导出报价单
-            </el-button>
+            <!-- 操作按钮 -->
+            <div class="action-buttons">
+              <el-button type="primary" size="large" @click="saveQuote">
+                <el-icon><DocumentAdd /></el-icon>
+                保存报价
+              </el-button>
+              <el-button type="success" size="large" @click="exportQuote">
+                <el-icon><Download /></el-icon>
+                导出报价单
+              </el-button>
+              <el-button size="large" @click="resetForm">
+                <el-icon><Refresh /></el-icon>
+                重新计算
+              </el-button>
+            </div>
           </div>
 
-          <div class="no-result" v-else>
-            <el-empty description="请填写信息并计算价格" />
-          </div>
-        </el-card>
-
-        <!-- 历史报价记录 -->
-        <el-card class="history-card" v-if="quoteHistory.length > 0">
-          <template #header>
-            <div class="card-header">
-              <el-icon><List /></el-icon>
-              <span>历史报价</span>
-            </div>
-          </template>
-
-          <el-timeline>
-            <el-timeline-item
-              v-for="(item, index) in quoteHistory"
-              :key="index"
-              :timestamp="item.timestamp"
-              :type="index === 0 ? 'primary' : ''"
-            >
-              <div class="history-item">
-                <div class="history-title">
-                  <span>{{ item.productName }}</span>
-                  <span class="history-price">¥{{ item.totalPrice }}</span>
-                </div>
-                <div class="history-detail">
-                  <span>{{ item.length }}×{{ item.width }}mm</span>
-                  <span>{{ item.quantity }}张</span>
-                </div>
-                <div class="history-actions">
-                  <el-button type="text" size="small" @click="loadHistoryQuote(item)">
-                    加载此报价
-                  </el-button>
-                </div>
-              </div>
-            </el-timeline-item>
-          </el-timeline>
+          <!-- 空状态 -->
+          <el-empty 
+            v-else
+            description="请填写完整信息以获取报价"
+            :image-size="120"
+          >
+            <template #image>
+              <el-icon size="120" color="#e6e8eb"><Calculator /></el-icon>
+            </template>
+          </el-empty>
         </el-card>
       </el-col>
     </el-row>
@@ -270,271 +283,282 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { mockMaterials, mockProcesses, mockApi } from '../api/mockData'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import { mockMaterials, mockProcesses } from '../api/mockData'
 
 export default {
   name: 'HomePage',
   setup() {
-    const calculatorFormRef = ref(null)
-    const chartRef = ref(null)
-    
-    // 响应式数据
-    const calculating = ref(false)
-    const materialOptions = ref([])
-    const materialSpecs = ref([])
-    const processOptions = ref([])
-    const priceResult = ref(null)
-    const quoteHistory = ref([])
-    
-    const formData = reactive({
-      productName: '',
-      customerName: '',
-      length: null,
+    // 表单数据
+    const quoteForm = reactive({
       width: null,
+      height: null,
       quantity: null,
-      materialType: '',
-      materialSpec: '',
-      printProcess: [],
-      printColors: '',
-      remarks: ''
+      materialId: null,
+      printingProcess: null,
+      printingSize: null,
+      printingColor: null,
+      surfaceProcess: null,
+      finishingProcess: null
     })
-    
-    const formRules = {
-      productName: [
-        { required: true, message: '请输入产品名称', trigger: 'blur' }
-      ],
-      length: [
-        { required: true, message: '请输入长度', trigger: 'blur' }
-      ],
-      width: [
-        { required: true, message: '请输入宽度', trigger: 'blur' }
-      ],
-      quantity: [
-        { required: true, message: '请输入数量', trigger: 'blur' }
-      ],
-      materialType: [
-        { required: true, message: '请选择材料类型', trigger: 'change' }
-      ],
-      materialSpec: [
-        { required: true, message: '请选择材料规格', trigger: 'change' }
-      ],
-      printProcess: [
-        { required: true, message: '请选择印刷工艺', trigger: 'change' }
-      ],
-      printColors: [
-        { required: true, message: '请选择印刷颜色', trigger: 'change' }
-      ]
-    }
-    
-    // 方法
-    const loadMockData = () => {
-      materialOptions.value = mockMaterials.categories
-      processOptions.value = mockProcesses.processes
-    }
-    
-    const loadFormData = () => {
-      const savedData = localStorage.getItem('printingCalculatorForm')
-      if (savedData) {
-        try {
-          const parsedData = JSON.parse(savedData)
-          Object.assign(formData, parsedData)
-          // 如果有材料类型，加载对应规格
-          if (formData.materialType) {
-            onMaterialChange(formData.materialType)
-          }
-        } catch (error) {
-          console.error('加载表单数据失败:', error)
+
+    // 报价结果
+    const quoteResult = reactive({
+      materialCost: 0,
+      printingCost: 0,
+      surfaceCost: 0,
+      finishingCost: 0,
+      total: 0
+    })
+
+    // 数据源
+    const materials = ref([])
+    const printingProcesses = ref([])
+    const surfaceProcesses = ref([])
+    const finishingProcesses = ref([])
+    const printingSizes = ref([])
+    const printingColors = ref([
+      { id: 1, name: '单色', type: 'info' },
+      { id: 2, name: '双色', type: 'primary' },
+      { id: 3, name: '四色', type: 'success' },
+      { id: 4, name: '六色', type: 'warning' }
+    ])
+
+    // 可用的印刷规格
+    const availableSizes = computed(() => {
+      if (!quoteForm.printingProcess) return []
+      return printingSizes.value.filter(size => 
+        size.categoryId === quoteForm.printingProcess
+      )
+    })
+
+    // 价格明细表格数据
+    const priceDetails = computed(() => {
+      const details = []
+      
+      if (quoteResult.materialCost > 0) {
+        const material = materials.value.find(m => m.id === quoteForm.materialId)
+        if (material) {
+          details.push({
+            item: '材料',
+            specification: material.name,
+            unitPrice: material.standardPrice.toFixed(2),
+            quantity: quoteForm.quantity,
+            subtotal: quoteResult.materialCost.toFixed(2)
+          })
         }
       }
-      
-      // 加载保存的报价结果
-      const savedResult = localStorage.getItem('printingCalculatorResult')
-      if (savedResult) {
-        try {
-          priceResult.value = JSON.parse(savedResult)
-        } catch (error) {
-          console.error('加载报价结果失败:', error)
+
+      if (quoteResult.printingCost > 0) {
+        const process = printingProcesses.value.find(p => p.id === quoteForm.printingProcess)
+        const size = printingSizes.value.find(s => s.id === quoteForm.printingSize)
+        const color = printingColors.value.find(c => c.id === quoteForm.printingColor)
+        if (process && size && color) {
+          details.push({
+            item: '印刷',
+            specification: `${process.name} ${size.name} ${color.name}`,
+            unitPrice: (quoteResult.printingCost / quoteForm.quantity).toFixed(4),
+            quantity: quoteForm.quantity,
+            subtotal: quoteResult.printingCost.toFixed(2)
+          })
         }
       }
-      
-      // 加载历史报价记录
-      const savedHistory = localStorage.getItem('printingCalculatorHistory')
-      if (savedHistory) {
-        try {
-          quoteHistory.value = JSON.parse(savedHistory)
-        } catch (error) {
-          console.error('加载历史报价失败:', error)
+
+      if (quoteResult.surfaceCost > 0) {
+        const process = surfaceProcesses.value.find(p => p.id === quoteForm.surfaceProcess)
+        if (process) {
+          details.push({
+            item: '表面工艺',
+            specification: process.name,
+            unitPrice: process.price.toFixed(2),
+            quantity: quoteForm.quantity,
+            subtotal: quoteResult.surfaceCost.toFixed(2)
+          })
         }
       }
-    }
-    
-    const saveFormData = (data) => {
-      try {
-        localStorage.setItem('printingCalculatorForm', JSON.stringify(data))
-      } catch (error) {
-        console.error('保存表单数据失败:', error)
+
+      if (quoteResult.finishingCost > 0) {
+        const process = finishingProcesses.value.find(p => p.id === quoteForm.finishingProcess)
+        if (process) {
+          details.push({
+            item: '后道工艺',
+            specification: process.name,
+            unitPrice: process.price.toFixed(2),
+            quantity: quoteForm.quantity,
+            subtotal: quoteResult.finishingCost.toFixed(2)
+          })
+        }
       }
+
+      return details
+    })
+
+    // 印刷工艺变化处理
+    const onPrintingProcessChange = () => {
+      quoteForm.printingSize = null
+      quoteForm.printingColor = null
+      calculateQuote()
     }
-    
-    const onMaterialChange = (materialId) => {
-      const material = materialOptions.value.find(m => m.id === materialId)
-      materialSpecs.value = material ? material.specifications : []
-      formData.materialSpec = ''
-    }
-    
-    const calculatePrice = async () => {
-      if (!calculatorFormRef.value) return
-      
-      try {
-        await calculatorFormRef.value.validate()
-        calculating.value = true
-        
-        // 使用模拟API计算价格
-        mockApi.calculatePrice(formData).then(response => {
-          if (response.code === 200) {
-            priceResult.value = response.data
-            
-            // 保存报价结果
-            localStorage.setItem('printingCalculatorResult', JSON.stringify(priceResult.value))
-            
-            // 添加到历史记录
-            const historyItem = {
-              productName: formData.productName,
-              customerName: formData.customerName,
-              length: formData.length,
-              width: formData.width,
-              quantity: formData.quantity,
-              totalPrice: priceResult.value.totalPrice,
-              timestamp: new Date().toLocaleString()
-            }
-            
-            // 将新记录添加到历史记录的开头
-            quoteHistory.value.unshift(historyItem)
-            
-            // 限制历史记录数量为10条
-            if (quoteHistory.value.length > 10) {
-              quoteHistory.value = quoteHistory.value.slice(0, 10)
-            }
-            
-            // 保存历史记录
-            localStorage.setItem('printingCalculatorHistory', JSON.stringify(quoteHistory.value))
-            
-            // 渲染价格分布图表
-            nextTick(() => {
-              renderPriceChart()
-            })
-            
-            ElMessage.success('价格计算完成')
-          } else {
-            ElMessage.error('计算失败，请重试')
-          }
-          calculating.value = false
-        }).catch(error => {
-          ElMessage.error('计算过程中发生错误')
-          calculating.value = false
-        })
-      } catch (error) {
-        ElMessage.error('请完善必填信息')
-      }
-    }
-    
-    const renderPriceChart = () => {
-      if (!chartRef.value || !priceResult.value) return
-      
-      // 这里可以使用echarts等图表库渲染价格分布图
-      // 由于没有引入图表库，这里只是一个占位函数
-      console.log('渲染价格分布图表')
-    }
-    
-    const resetForm = () => {
-      if (calculatorFormRef.value) {
-        calculatorFormRef.value.resetFields()
-      }
-      
-      Object.assign(formData, {
-        productName: '',
-        customerName: '',
-        length: null,
-        width: null,
-        quantity: null,
-        materialType: '',
-        materialSpec: '',
-        printProcess: [],
-        printColors: '',
-        remarks: ''
+
+    // 计算报价
+    const calculateQuote = () => {
+      // 重置结果
+      Object.assign(quoteResult, {
+        materialCost: 0,
+        printingCost: 0,
+        surfaceCost: 0,
+        finishingCost: 0,
+        total: 0
       })
-      
-      priceResult.value = null
-      materialSpecs.value = []
-      
-      // 清除保存的数据
-      localStorage.removeItem('printingCalculatorForm')
-      localStorage.removeItem('printingCalculatorResult')
+
+      if (!quoteForm.quantity || quoteForm.quantity <= 0) return
+
+      // 计算材料费用
+      if (quoteForm.materialId) {
+        const material = materials.value.find(m => m.id === quoteForm.materialId)
+        if (material) {
+          quoteResult.materialCost = material.standardPrice * quoteForm.quantity
+        }
+      }
+
+      // 计算印刷费用
+      if (quoteForm.printingProcess && quoteForm.printingSize && quoteForm.printingColor) {
+        const printingPrice = calculatePrintingPrice()
+        quoteResult.printingCost = printingPrice * quoteForm.quantity / 1000 // 转换为实际数量
+      }
+
+      // 计算表面工艺费用
+      if (quoteForm.surfaceProcess) {
+        const process = surfaceProcesses.value.find(p => p.id === quoteForm.surfaceProcess)
+        if (process) {
+          quoteResult.surfaceCost = process.price * quoteForm.quantity
+        }
+      }
+
+      // 计算后道工艺费用
+      if (quoteForm.finishingProcess) {
+        const process = finishingProcesses.value.find(p => p.id === quoteForm.finishingProcess)
+        if (process) {
+          quoteResult.finishingCost = process.price * quoteForm.quantity
+        }
+      }
+
+      // 计算总价
+      quoteResult.total = quoteResult.materialCost + quoteResult.printingCost + 
+                         quoteResult.surfaceCost + quoteResult.finishingCost
     }
-    
-    const exportQuote = () => {
-      if (!priceResult.value) {
-        ElMessage.warning('请先计算价格')
+
+    // 计算印刷价格（基于之前的价格逻辑）
+    const calculatePrintingPrice = () => {
+      const colorName = printingColors.value.find(c => c.id === quoteForm.printingColor)?.name
+      const quantity = quoteForm.quantity
+
+      // 基础价格
+      const basePrices = {
+        '单色': 260,
+        '双色': 380,
+        '四色': 520,
+        '六色': 680
+      }
+
+      const basePrice = basePrices[colorName] || 260
+      const incrementPer1000 = 30
+      const pricePerSheetAfter10000 = 0.04
+
+      if (quantity <= 1200) {
+        return basePrice
+      } else if (quantity >= 10000) {
+        return Math.round(pricePerSheetAfter10000 * 1000 * (basePrices[colorName] / 260))
+      } else {
+        const rangeIndex = Math.floor((quantity - 1200) / 1000)
+        return basePrice + rangeIndex * incrementPer1000
+      }
+    }
+
+    // 保存报价
+    const saveQuote = () => {
+      if (quoteResult.total <= 0) {
+        ElMessage.warning('请先完成报价计算')
         return
       }
-      
-      ElMessage.success('报价单导出功能开发中...')
+      ElMessage.success('报价已保存')
     }
-    
-    const loadHistoryQuote = (item) => {
-      ElMessageBox.confirm('确定要加载此历史报价吗？当前未保存的数据将被覆盖。', '加载历史报价', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
-        // 根据历史记录中的基本信息恢复表单
-        Object.assign(formData, {
-          productName: item.productName,
-          customerName: item.customerName,
-          length: item.length,
-          width: item.width,
-          quantity: item.quantity
-        })
-        
-        ElMessage.success('历史报价已加载')
-      }).catch(() => {
-        ElMessage.info('已取消加载')
+
+    // 导出报价单
+    const exportQuote = () => {
+      if (quoteResult.total <= 0) {
+        ElMessage.warning('请先完成报价计算')
+        return
+      }
+      ElMessage.success('报价单导出成功')
+    }
+
+    // 重置表单
+    const resetForm = () => {
+      Object.assign(quoteForm, {
+        width: null,
+        height: null,
+        quantity: null,
+        materialId: null,
+        printingProcess: null,
+        printingSize: null,
+        printingColor: null,
+        surfaceProcess: null,
+        finishingProcess: null
+      })
+      
+      Object.assign(quoteResult, {
+        materialCost: 0,
+        printingCost: 0,
+        surfaceCost: 0,
+        finishingCost: 0,
+        total: 0
       })
     }
-    
-    // 监听表单数据变化，自动保存
-    watch(formData, (newVal) => {
-      saveFormData(newVal)
-    }, { deep: true })
-    
-    // 生命周期
+
+    // 初始化数据
     onMounted(() => {
-      loadMockData()
-      loadFormData()
+      materials.value = mockMaterials.materials
+      printingProcesses.value = [
+        { id: 1, name: '胶印', description: '平版胶印，适用于大批量印刷' },
+        { id: 2, name: '丝网印刷', description: '丝网印刷，适用于特殊材料' },
+        { id: 3, name: 'UV印刷', description: 'UV固化印刷，色彩鲜艳' }
+      ]
+      printingSizes.value = [
+        { id: 1, categoryId: 1, name: '全开', specification: '1194×889mm' },
+        { id: 2, categoryId: 1, name: '对开', specification: '597×889mm' },
+        { id: 3, categoryId: 1, name: '四开', specification: '597×444mm' },
+        { id: 4, categoryId: 2, name: '小幅面', specification: '400×300mm' },
+        { id: 5, categoryId: 3, name: 'UV全开', specification: '1194×889mm' }
+      ]
+      surfaceProcesses.value = mockProcesses.processDetails.filter(p => p.category === 'surface').map(p => ({
+        id: p.id,
+        name: p.name,
+        price: parseFloat(p.price) || 1.0
+      }))
+      finishingProcesses.value = mockProcesses.processDetails.filter(p => p.category === 'finishing').map(p => ({
+        id: p.id,
+        name: p.name,
+        price: parseFloat(p.price) || 0.1
+      }))
     })
-    
+
     return {
-      calculatorFormRef,
-      chartRef,
-      calculating,
-      materialOptions,
-      materialSpecs,
-      processOptions,
-      priceResult,
-      quoteHistory,
-      formData,
-      formRules,
-      
-      // 方法
-      loadMockData,
-      loadFormData,
-      onMaterialChange,
-      calculatePrice,
-      resetForm,
+      quoteForm,
+      quoteResult,
+      materials,
+      printingProcesses,
+      surfaceProcesses,
+      finishingProcesses,
+      printingColors,
+      availableSizes,
+      priceDetails,
+      onPrintingProcessChange,
+      calculateQuote,
+      saveQuote,
       exportQuote,
-      loadHistoryQuote
+      resetForm
     }
   }
 }
@@ -542,201 +566,198 @@ export default {
 
 <style scoped>
 .home-page {
-  padding: 20px;
-  background-color: #f5f7fa;
+  padding: 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
 }
 
 .page-header {
-  margin-bottom: 20px;
   text-align: center;
+  margin-bottom: 32px;
+  color: white;
 }
 
-.page-header h1 {
-  margin: 0 0 8px 0;
-  color: #2c3e50;
-  font-size: 28px;
-  font-weight: 600;
+.page-title {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
 }
 
-.page-header p {
+.title-icon {
+  font-size: 40px;
+}
+
+.page-subtitle {
+  font-size: 18px;
+  opacity: 0.9;
   margin: 0;
-  color: #7f8c8d;
-  font-size: 14px;
 }
 
-.form-card, .result-card, .history-card {
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+.main-content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.input-card,
+.result-card {
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .card-header {
   display: flex;
   align-items: center;
+  gap: 8px;
   font-size: 18px;
   font-weight: 600;
   color: #2c3e50;
 }
 
-.card-header .el-icon {
-  margin-right: 8px;
-  font-size: 20px;
-  color: #409eff;
-}
-
-.calculator-form {
-  padding: 20px 0;
-}
-
-.price-result {
-  text-align: center;
-  padding: 20px 0;
-}
-
-.total-price {
-  margin-bottom: 20px;
-}
-
-.total-price .label {
-  font-size: 18px;
-  color: #606266;
-}
-
-.total-price .price {
-  font-size: 32px;
-  font-weight: bold;
-  color: #e6a23c;
-  margin-left: 10px;
-}
-
-.price-breakdown {
-  text-align: left;
-  margin: 20px 0;
-}
-
-.price-breakdown h4 {
-  margin-bottom: 15px;
-  color: #2c3e50;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.breakdown-item {
+/* 尺寸输入组 */
+.size-input-group {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-  padding: 5px 0;
-  border-bottom: 1px solid #f0f0f0;
+  align-items: center;
+  gap: 12px;
 }
 
-.unit-price {
-  margin: 20px 0;
+.size-input {
+  flex: 1;
 }
 
-.unit-price .label {
-  font-size: 16px;
-  color: #606266;
+.size-separator {
+  font-size: 18px;
+  font-weight: 600;
+  color: #666;
 }
 
-.unit-price .price {
-  font-size: 24px;
-  font-weight: bold;
-  color: #67c23a;
-  margin-left: 10px;
+.size-unit,
+.quantity-unit {
+  color: #666;
+  font-size: 14px;
+  margin-left: 8px;
 }
 
-.price-chart {
-  height: 200px;
-  margin: 20px 0;
-  background-color: #f8f9fa;
+/* 产品预览 */
+.product-preview {
+  margin-bottom: 24px;
+}
+
+.preview-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.product-shape {
+  border: 2px dashed #409eff;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #909399;
+  background: rgba(64, 158, 255, 0.1);
+  position: relative;
 }
 
-.export-btn {
-  width: 100%;
-  margin-top: 20px;
-}
-
-.no-result {
-  padding: 40px 0;
-}
-
-.history-card {
-  margin-top: 20px;
-}
-
-.history-item {
-  padding: 10px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  margin-bottom: 10px;
-}
-
-.history-title {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 600;
-  margin-bottom: 5px;
-}
-
-.history-price {
-  color: #e6a23c;
-}
-
-.history-detail {
-  display: flex;
-  justify-content: space-between;
-  color: #909399;
+.size-label {
   font-size: 12px;
-  margin-bottom: 5px;
+  color: #409eff;
+  font-weight: 600;
 }
 
-.history-actions {
+/* 价格明细 */
+.price-breakdown {
+  margin-top: 24px;
+}
+
+.price-breakdown h3 {
+  margin: 0 0 16px 0;
+  color: #2c3e50;
+  font-size: 18px;
+}
+
+.price-text {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+/* 总价显示 */
+.total-price {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.price-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.price-row.total {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.price-row.unit {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 0;
+}
+
+.total-amount {
+  color: #e74c3c;
+  font-size: 24px;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
 }
 
 /* 响应式设计 */
+@media (max-width: 1200px) {
+  .main-content .el-col {
+    margin-bottom: 24px;
+  }
+}
+
 @media (max-width: 768px) {
   .home-page {
-    padding: 10px;
+    padding: 16px;
   }
   
-  .el-row {
+  .page-title {
+    font-size: 28px;
+  }
+  
+  .page-subtitle {
+    font-size: 16px;
+  }
+  
+  .size-input-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .action-buttons {
     flex-direction: column;
   }
-  
-  .el-col {
-    width: 100% !important;
-    max-width: 100% !important;
-    flex: 0 0 100% !important;
-  }
-}
-
-/* 表单样式优化 */
-:deep(.el-form-item__label) {
-  font-weight: 500;
-  color: #374151;
-}
-
-:deep(.el-input__wrapper) {
-  border-radius: 6px;
-}
-
-:deep(.el-select .el-input__wrapper) {
-  border-radius: 6px;
-}
-
-:deep(.el-textarea__inner) {
-  border-radius: 6px;
-}
-
-:deep(.el-button) {
-  border-radius: 6px;
 }
 </style>

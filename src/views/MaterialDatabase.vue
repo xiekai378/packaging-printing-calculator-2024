@@ -38,7 +38,7 @@
       </template>
 
       <!-- 材料品类标签管理 -->
-      <div class="category-tags-section" v-if="route.params.category === 'paper'">
+      <div class="category-tags-section">
         <div class="tags-header">
           <span class="tags-title">材料品类：</span>
           <el-button type="primary" size="small" @click="manageCategoriesDialog">
@@ -133,20 +133,7 @@
         <el-table-column prop="unit" label="单位" width="80" />
         <el-table-column prop="weight" label="克重" width="80" v-if="showWeightColumn" />
         <el-table-column prop="thickness" label="厚度" width="80" v-if="showThicknessColumn" />
-        <el-table-column prop="standardPrice" label="正度价格" width="100" v-if="showPriceColumns">
-          <template #default="scope">
-            <span v-if="scope.row.standardPrice">{{ scope.row.standardPrice }}</span>
-            <span v-else>-</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="largePrice" label="大度价格" width="100" v-if="showPriceColumns">
-          <template #default="scope">
-            <span v-if="scope.row.largePrice">{{ scope.row.largePrice }}</span>
-            <span v-else>-</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="size1" label="尺寸1" width="80" v-if="showSizeColumns" />
-        <el-table-column prop="size2" label="尺寸2" width="80" v-if="showSizeColumns" />
+        <el-table-column prop="supplier" label="供应商" width="120" />
         <el-table-column prop="remarks" label="备注" min-width="150" />
         <el-table-column prop="updateTime" label="修改日期" width="150" />
         <el-table-column prop="materialCategory" label="材料品类" width="120">
@@ -187,24 +174,22 @@
       >
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="材料名称" prop="name">
-              <el-input v-model="materialForm.name" placeholder="请输入材料名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="单位" prop="unit">
-              <el-select v-model="materialForm.unit" placeholder="请选择单位">
-                <el-option label="元/张" value="元/张" />
-                <el-option label="元/平方" value="元/平方" />
-                <el-option label="元/千克" value="元/千克" />
-                <el-option label="元/米" value="元/米" />
-                <el-option label="元/吨" value="元/吨" />
+            <el-form-item label="材料品类" prop="materialCategory">
+              <el-select 
+                v-model="materialForm.materialCategory" 
+                placeholder="请选择材料品类" 
+                filterable
+                @change="generateMaterialName"
+              >
+                <el-option
+                  v-for="category in materialCategoryTags"
+                  :key="category.id"
+                  :label="category.name"
+                  :value="category.name"
+                />
               </el-select>
             </el-form-item>
           </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="单价" prop="price">
               <el-input-number
@@ -216,6 +201,20 @@
               />
             </el-form-item>
           </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="单位" prop="unit">
+              <el-select v-model="materialForm.unit" placeholder="请选择单位">
+                <el-option label="元/张" value="元/张" />
+                <el-option label="元/平方米" value="元/平方米" />
+                <el-option label="元/千克" value="元/千克" />
+                <el-option label="元/米" value="元/米" />
+                <el-option label="元/吨" value="元/吨" />
+              </el-select>
+            </el-form-item>
+          </el-col>
           <el-col :span="12" v-if="showWeightColumn">
             <el-form-item label="克重" prop="weight">
               <el-input-number
@@ -223,80 +222,45 @@
                 :min="0"
                 placeholder="请输入克重"
                 style="width: 100%"
+                @change="generateMaterialName"
               />
             </el-form-item>
           </el-col>
         </el-row>
 
-        <!-- 纸类显示正度价格和大度价格 -->
-        <el-row :gutter="20" v-if="showPriceColumns">
+        <el-row :gutter="20" v-if="showThicknessColumn">
           <el-col :span="12">
-            <el-form-item label="正度价格" prop="standardPrice">
+            <el-form-item label="厚度" prop="thickness">
               <el-input-number
-                v-model="materialForm.standardPrice"
+                v-model="materialForm.thickness"
                 :min="0"
-                :precision="2"
-                placeholder="请输入正度价格"
+                :precision="1"
+                placeholder="请输入厚度"
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="大度价格" prop="largePrice">
-              <el-input-number
-                v-model="materialForm.largePrice"
-                :min="0"
-                :precision="2"
-                placeholder="请输入大度价格"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <!-- 特种纸显示尺寸 -->
-        <el-row :gutter="20" v-if="showSizeColumns">
-          <el-col :span="12">
-            <el-form-item label="尺寸1" prop="size1">
-              <el-input-number
-                v-model="materialForm.size1"
-                :min="0"
-                placeholder="请输入尺寸1"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="尺寸2" prop="size2">
-              <el-input-number
-                v-model="materialForm.size2"
-                :min="0"
-                placeholder="请输入尺寸2"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="供应商" prop="supplier">
               <el-input v-model="materialForm.supplier" placeholder="请输入供应商" />
             </el-form-item>
           </el-col>
+        </el-row>
+
+        <el-row :gutter="20" v-if="!showThicknessColumn">
           <el-col :span="12">
-            <el-form-item label="材料品类" prop="materialCategory">
-              <el-select v-model="materialForm.materialCategory" placeholder="请选择材料品类" filterable>
-                <el-option
-                  v-for="category in materialCategoryTags"
-                  :key="category.id"
-                  :label="category.name"
-                  :value="category.name"
-                />
-              </el-select>
+            <el-form-item label="供应商" prop="supplier">
+              <el-input v-model="materialForm.supplier" placeholder="请输入供应商" />
             </el-form-item>
           </el-col>
         </el-row>
+
+        <el-form-item label="材料名称" prop="name">
+          <el-input
+            v-model="materialForm.name"
+            placeholder="系统将自动生成名称，也可手动修改"
+          />
+        </el-form-item>
 
         <el-form-item label="备注">
           <el-input
@@ -416,7 +380,7 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { mockMaterials } from '../api/mockData'
@@ -430,9 +394,10 @@ export default {
     const loading = ref(false)
     const saving = ref(false)
     const dialogVisible = ref(false)
-    const isEdit = ref(false)
     const manageCategoriesDialogVisible = ref(false)
+    const isEdit = ref(false)
     const selectedCategoryId = ref(null)
+    const categoryFormRef = ref(null)
     
     const searchForm = reactive({
       keyword: '',
@@ -442,33 +407,12 @@ export default {
     const materials = ref([])
     const filteredMaterials = ref([])
     const selectedMaterials = ref([])
-    
-    // 从localStorage加载材料品类标签，如果没有则使用默认数据
-    const getStoredCategoryTags = () => {
-      const stored = localStorage.getItem('materialCategoryTags')
-      if (stored) {
-        return JSON.parse(stored)
-      }
-      return [
-        { id: 1, name: '书写纸', type: 'primary', description: '用于书写的纸张', createTime: '2024-01-01 10:00:00' },
-        { id: 2, name: '双胶纸', type: 'success', description: '双面胶版印刷纸', createTime: '2024-01-01 10:00:00' },
-        { id: 3, name: '新闻纸', type: 'info', description: '用于印刷报纸的纸张', createTime: '2024-01-01 10:00:00' },
-        { id: 4, name: '包装纸', type: 'warning', description: '用于包装的纸张', createTime: '2024-01-01 10:00:00' }
-      ]
-    }
-    
-    const materialCategoryTags = ref(getStoredCategoryTags())
+    const materialCategoryTags = ref([])
     
     const pagination = reactive({
       currentPage: 1,
       pageSize: 20,
       total: 0
-    })
-    
-    const categoryForm = reactive({
-      name: '',
-      description: '',
-      type: 'primary'
     })
     
     const materialForm = reactive({
@@ -479,13 +423,15 @@ export default {
       price: null,
       weight: null,
       thickness: null,
-      standardPrice: null,
-      largePrice: null,
-      size1: null,
-      size2: null,
       supplier: '',
       remarks: '',
       materialCategory: ''
+    })
+    
+    const categoryForm = reactive({
+      name: '',
+      description: '',
+      type: 'primary'
     })
     
     // 表单验证规则
@@ -500,6 +446,9 @@ export default {
     }
     
     const materialRules = {
+      materialCategory: [
+        { required: true, message: '请选择材料品类', trigger: 'change' }
+      ],
       name: [
         { required: true, message: '请输入材料名称', trigger: 'blur' }
       ],
@@ -546,15 +495,58 @@ export default {
       return ['paper', 'specialty-paper'].includes(category)
     })
     
-    const showPriceColumns = computed(() => {
-      const category = route.params.category
-      return category === 'paper'
-    })
+    // 从实际数据中提取品类标签
+    const generateCategoryTagsFromData = (currentCategory) => {
+      const categoryMaterials = mockMaterials.materials.filter(item => item.category === currentCategory)
+      const uniqueCategories = [...new Set(categoryMaterials.map(item => item.materialCategory).filter(Boolean))]
+      const colors = ['primary', 'success', 'warning', 'danger', 'info']
+      
+      // 确保品类标签与实际材料数据完全对应
+      return uniqueCategories.map((categoryName, index) => ({
+        id: index + 1,
+        name: categoryName,
+        type: colors[index % colors.length],
+        description: `${categoryName}相关材料`,
+        createTime: '2024-01-15 10:00:00'
+      }))
+    }
     
-    const showSizeColumns = computed(() => {
-      const category = route.params.category
-      return category === 'specialty-paper'
-    })
+    // 从localStorage加载材料品类标签
+    const getStoredCategoryTags = (currentCategory) => {
+      const storageKey = `materialCategoryTags_${currentCategory}`
+      const stored = localStorage.getItem(storageKey)
+      
+      // 获取当前实际材料数据中的品类
+      const actualCategories = generateCategoryTagsFromData(currentCategory)
+      
+      if (stored) {
+        const storedTags = JSON.parse(stored)
+        // 合并存储的标签和实际数据中的标签，确保完全对应
+        const actualCategoryNames = actualCategories.map(cat => cat.name)
+        const mergedTags = []
+        
+        // 先添加实际存在的品类
+        actualCategories.forEach(actualCat => {
+          const existingTag = storedTags.find(tag => tag.name === actualCat.name)
+          if (existingTag) {
+            mergedTags.push(existingTag)
+          } else {
+            mergedTags.push(actualCat)
+          }
+        })
+        
+        // 再添加用户自定义的品类（但不在实际数据中的）
+        storedTags.forEach(storedTag => {
+          if (!actualCategoryNames.includes(storedTag.name)) {
+            mergedTags.push(storedTag)
+          }
+        })
+        
+        return mergedTags
+      }
+      
+      return actualCategories
+    }
     
     // 从localStorage加载材料数据
     const getStoredMaterials = (category) => {
@@ -563,7 +555,6 @@ export default {
       if (stored) {
         return JSON.parse(stored)
       }
-      // 如果localStorage中没有数据，使用mockData的默认数据
       return mockMaterials.materials.filter(item => item.category === category)
     }
     
@@ -574,8 +565,35 @@ export default {
     }
     
     // 保存品类标签到localStorage
-    const saveCategoryTagsToStorage = (tags) => {
-      localStorage.setItem('materialCategoryTags', JSON.stringify(tags))
+    const saveCategoryTagsToStorage = (currentCategory, tags) => {
+      const storageKey = `materialCategoryTags_${currentCategory}`
+      localStorage.setItem(storageKey, JSON.stringify(tags))
+    }
+    
+    // 智能生成材料名称
+    const generateMaterialName = () => {
+      const { materialCategory, weight } = materialForm
+      
+      if (!materialCategory) {
+        materialForm.name = ''
+        return
+      }
+      
+      let generatedName = ''
+      
+      if (weight && weight > 0) {
+        generatedName = `${weight}g${materialCategory}`
+      } else {
+        generatedName = materialCategory
+      }
+      
+      const isAutoGenerated = !materialForm.name || 
+        materialForm.name === materialCategory || 
+        /^\d+g/.test(materialForm.name)
+      
+      if (isAutoGenerated) {
+        materialForm.name = generatedName
+      }
     }
     
     // 方法
@@ -586,6 +604,7 @@ export default {
         materials.value = getStoredMaterials(category)
         filteredMaterials.value = [...materials.value]
         pagination.total = materials.value.length
+        materialCategoryTags.value = getStoredCategoryTags(category)
         loading.value = false
       }, 500)
     }
@@ -650,9 +669,7 @@ export default {
           ElMessage.success('材料添加成功')
         }
         
-        // 保存到localStorage
         saveMaterialsToStorage(route.params.category, materials.value)
-        
         handleSearch()
         dialogVisible.value = false
         saving.value = false
@@ -668,10 +685,6 @@ export default {
         price: null,
         weight: null,
         thickness: null,
-        standardPrice: null,
-        largePrice: null,
-        size1: null,
-        size2: null,
         supplier: '',
         remarks: '',
         materialCategory: ''
@@ -715,9 +728,7 @@ export default {
           }
         })
         
-        // 保存到localStorage
         saveMaterialsToStorage(route.params.category, materials.value)
-        
         handleSearch()
         ElMessage.success(`成功删除 ${selectedMaterials.value.length} 个材料`)
       }).catch(() => {
@@ -736,27 +747,59 @@ export default {
         type: 'warning',
         confirmButtonClass: 'el-button--danger'
       }).then(() => {
-        // 清空localStorage中的所有相关数据
-        localStorage.removeItem('materialCategoryTags')
-        localStorage.removeItem('materials_paper')
-        localStorage.removeItem('materials_specialty-paper')
-        localStorage.removeItem('materials_adhesive')
-        
-        // 重新加载默认数据
-        materialCategoryTags.value = getStoredCategoryTags()
+        const category = route.params.category
+        localStorage.removeItem(`materialCategoryTags_${category}`)
+        localStorage.removeItem(`materials_${category}`)
         loadMaterials()
-        
         ElMessage.success('数据已重置为初始状态')
       }).catch(() => {
         ElMessage.info('已取消重置')
       })
     }
     
+    const filterByCategory = (category) => {
+      selectedCategoryId.value = category.id
+      let filtered = materials.value.filter(item => item.materialCategory === category.name)
+      filteredMaterials.value = filtered
+      pagination.total = filtered.length
+      pagination.currentPage = 1
+    }
+    
+    const clearCategoryFilter = () => {
+      selectedCategoryId.value = null
+      filteredMaterials.value = [...materials.value]
+      pagination.total = materials.value.length
+      pagination.currentPage = 1
+    }
+    
+    const getCategoryUsageCount = (categoryName) => {
+      return materials.value.filter(item => item.materialCategory === categoryName).length
+    }
+    
+    const getTagTypeByUsage = (category) => {
+      const usageCount = getCategoryUsageCount(category.name)
+      if (usageCount === 0) return 'info'
+      if (usageCount <= 2) return 'warning'
+      return category.type
+    }
+    
+    const getCategoryTagType = (categoryName) => {
+      const category = materialCategoryTags.value.find(item => item.name === categoryName)
+      return category ? category.type : 'default'
+    }
+    
+    // 品类管理相关方法
     const manageCategoriesDialog = () => {
       manageCategoriesDialogVisible.value = true
     }
     
     const addCategory = () => {
+      // 先进行表单验证
+      if (!categoryForm.name) {
+        ElMessage.error('请输入品类名称')
+        return
+      }
+      
       // 检查品类名称是否已存在
       const exists = materialCategoryTags.value.some(item => item.name === categoryForm.name)
       if (exists) {
@@ -774,7 +817,7 @@ export default {
       materialCategoryTags.value.push(newCategory)
       
       // 保存到localStorage
-      saveCategoryTagsToStorage(materialCategoryTags.value)
+      saveCategoryTagsToStorage(route.params.category, materialCategoryTags.value)
       
       resetCategoryForm()
       ElMessage.success('品类添加成功')
@@ -820,7 +863,7 @@ export default {
           materialCategoryTags.value.splice(index, 1)
           
           // 保存更新后的品类数据
-          saveCategoryTagsToStorage(materialCategoryTags.value)
+          saveCategoryTagsToStorage(route.params.category, materialCategoryTags.value)
           
           ElMessage.success(`品类删除成功${usageCount > 0 ? `，已清空 ${usageCount} 个材料的品类信息` : ''}`)
           handleSearch() // 刷新列表
@@ -828,32 +871,6 @@ export default {
       }).catch(() => {
         ElMessage.info('已取消删除')
       })
-    }
-    
-    const filterByCategory = (category) => {
-      selectedCategoryId.value = category.id
-      let filtered = materials.value.filter(item => item.materialCategory === category.name)
-      filteredMaterials.value = filtered
-      pagination.total = filtered.length
-      pagination.currentPage = 1
-    }
-    
-    const clearCategoryFilter = () => {
-      selectedCategoryId.value = null
-      filteredMaterials.value = [...materials.value]
-      pagination.total = materials.value.length
-      pagination.currentPage = 1
-    }
-    
-    const getCategoryUsageCount = (categoryName) => {
-      return materials.value.filter(item => item.materialCategory === categoryName).length
-    }
-    
-    const getTagTypeByUsage = (category) => {
-      const usageCount = getCategoryUsageCount(category.name)
-      if (usageCount === 0) return 'info'
-      if (usageCount <= 2) return 'warning'
-      return category.type
     }
     
     const getTypeLabel = (type) => {
@@ -867,16 +884,16 @@ export default {
       return typeMap[type] || '默认'
     }
     
-    const getCategoryTagType = (categoryName) => {
-      const category = materialCategoryTags.value.find(item => item.name === categoryName)
-      return category ? category.type : 'default'
-    }
-    
     const resetCategoryForm = () => {
       categoryForm.name = ''
       categoryForm.description = ''
       categoryForm.type = 'primary'
     }
+    
+    // 监听路由变化，重新加载数据
+    watch(() => route.params.category, () => {
+      loadMaterials()
+    })
     
     // 生命周期
     onMounted(() => {
@@ -889,19 +906,20 @@ export default {
       loading,
       saving,
       dialogVisible,
-      isEdit,
       manageCategoriesDialogVisible,
+      isEdit,
       selectedCategoryId,
+      categoryFormRef,
       searchForm,
       materials,
       filteredMaterials,
       selectedMaterials,
       materialCategoryTags,
       pagination,
-      categoryForm,
       materialForm,
-      categoryRules,
+      categoryForm,
       materialRules,
+      categoryRules,
       
       // 计算属性
       dialogTitle,
@@ -909,10 +927,7 @@ export default {
       cardTitle,
       showWeightColumn,
       showThicknessColumn,
-      showPriceColumns,
-      showSizeColumns,
       
-      // 方法
       // 方法
       loadMaterials,
       handleSearch,
@@ -928,16 +943,17 @@ export default {
       batchDelete,
       exportData,
       resetAllData,
-      manageCategoriesDialog,
-      addCategory,
-      editCategory,
-      confirmDeleteCategory,
       filterByCategory,
       clearCategoryFilter,
       getCategoryUsageCount,
       getTagTypeByUsage,
-      getTypeLabel,
       getCategoryTagType,
+      generateMaterialName,
+      manageCategoriesDialog,
+      addCategory,
+      editCategory,
+      confirmDeleteCategory,
+      getTypeLabel,
       resetCategoryForm
     }
   }
@@ -1055,20 +1071,26 @@ export default {
 .search-section {
   margin-bottom: 20px;
   padding: 16px;
-  background: white;
+  background: #ffffff;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
 }
 
 .price-text {
   font-weight: 600;
-  color: #059669;
+  color: #e74c3c;
 }
 
 .pagination-wrapper {
   margin-top: 20px;
   display: flex;
   justify-content: center;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .add-category-section {
@@ -1092,111 +1114,5 @@ export default {
 .usage-warning {
   color: #f59e0b;
   font-weight: 600;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .material-database {
-    padding: 10px;
-  }
-  
-  .header-right {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .search-section .el-row {
-    flex-direction: column;
-  }
-  
-  .search-section .el-col {
-    margin-bottom: 12px;
-  }
-  
-  .tags-container {
-    justify-content: center;
-  }
-}
-
-/* 表格样式优化 */
-:deep(.el-table) {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-:deep(.el-table__header-wrapper) {
-  border-radius: 8px 8px 0 0;
-}
-
-:deep(.el-table__body-wrapper) {
-  border-radius: 0 0 8px 8px;
-}
-
-:deep(.el-button--text) {
-  color: #409eff;
-  font-weight: 500;
-}
-
-:deep(.el-button--text:hover) {
-  color: #66b1ff;
-  background-color: #ecf5ff;
-}
-
-/* 对话框样式 */
-:deep(.el-dialog) {
-  border-radius: 12px;
-}
-
-:deep(.el-dialog__header) {
-  padding: 20px 20px 10px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-:deep(.el-dialog__body) {
-  padding: 20px;
-}
-
-:deep(.el-dialog__footer) {
-  padding: 10px 20px 20px;
-  border-top: 1px solid #f0f0f0;
-}
-
-/* 表单样式 */
-:deep(.el-form-item__label) {
-  font-weight: 500;
-  color: #374151;
-}
-
-:deep(.el-input__wrapper) {
-  border-radius: 6px;
-}
-
-:deep(.el-select .el-input__wrapper) {
-  border-radius: 6px;
-}
-
-:deep(.el-textarea__inner) {
-  border-radius: 6px;
-}
-
-/* 分页样式 */
-:deep(.el-pagination) {
-  justify-content: center;
-}
-
-:deep(.el-pagination .el-pager li) {
-  border-radius: 4px;
-  margin: 0 2px;
-}
-
-:deep(.el-pagination .el-pager li.is-active) {
-  background-color: #409eff;
-  color: white;
 }
 </style>

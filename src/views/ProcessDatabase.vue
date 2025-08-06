@@ -2,7 +2,7 @@
   <div class="process-database">
     <div class="page-header">
       <h1>{{ pageTitle }}</h1>
-      <p>管理印刷工艺信息和价格系数</p>
+      <p>管理{{ pageTitle }}信息和价格数据</p>
     </div>
 
     <el-card class="database-card">
@@ -37,6 +37,36 @@
         </div>
       </template>
 
+      <!-- 工艺品类标签管理 -->
+      <div class="category-tags-section">
+        <div class="tags-header">
+          <span class="tags-title">工艺品类：</span>
+          <el-button type="primary" size="small" @click="manageCategoriesDialog">
+            <el-icon><Setting /></el-icon>
+            品类管理
+          </el-button>
+        </div>
+        <div class="tags-container">
+          <el-tag
+            v-for="category in processCategoryTags"
+            :key="category.id"
+            :type="getTagTypeByUsage(category)"
+            @click="filterByCategory(category)"
+            class="category-tag"
+            :class="{ 'active-tag': selectedCategoryId === category.id }"
+          >
+            {{ category.name }}
+            <span class="usage-count">({{ getCategoryUsageCount(category.name) }})</span>
+          </el-tag>
+        </div>
+        <div class="category-actions" v-if="selectedCategoryId">
+          <el-button size="small" @click="clearCategoryFilter">
+            <el-icon><Close /></el-icon>
+            清除筛选
+          </el-button>
+        </div>
+      </div>
+
       <!-- 搜索筛选区域 -->
       <div class="search-section">
         <el-row :gutter="20">
@@ -53,26 +83,16 @@
             </el-input>
           </el-col>
           <el-col :span="6">
-            <el-select
-              v-model="searchForm.priceType"
-              placeholder="计价方式"
+            <el-input
+              v-model="searchForm.supplier"
+              placeholder="搜索供应商"
               clearable
-              @change="handleSearch"
+              @input="handleSearch"
             >
-              <el-option label="固定价格" value="fixed" />
-              <el-option label="系数计价" value="coefficient" />
-            </el-select>
-          </el-col>
-          <el-col :span="6">
-            <el-select
-              v-model="searchForm.status"
-              placeholder="状态筛选"
-              clearable
-              @change="handleSearch"
-            >
-              <el-option label="启用" value="active" />
-              <el-option label="禁用" value="inactive" />
-            </el-select>
+              <template #prefix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-input>
           </el-col>
           <el-col :span="6">
             <el-button type="primary" @click="handleSearch">
@@ -98,58 +118,39 @@
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="name" label="工艺名称" min-width="120" fixed="left">
+        <el-table-column prop="name" label="名称" min-width="120" fixed="left">
           <template #default="scope">
             <el-button type="text" @click="editProcess(scope.row)">
               {{ scope.row.name }}
             </el-button>
           </template>
         </el-table-column>
-        <el-table-column prop="category" label="分类" width="120">
+        <el-table-column prop="price" label="价格" width="100">
           <template #default="scope">
-            <el-tag :type="getCategoryTagType(scope.row.category)">
-              {{ getCategoryLabel(scope.row.category) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="description" label="工艺描述" min-width="180" />
-        <el-table-column prop="priceType" label="计价方式" width="120">
-          <template #default="scope">
-            <el-tag :type="scope.row.priceType === 'fixed' ? 'success' : 'warning'">
-              {{ scope.row.priceType === 'fixed' ? '固定价格' : '系数计价' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="price" label="价格/系数" width="120">
-          <template #default="scope">
-            <span class="price-text">
-              {{ scope.row.priceType === 'fixed' ? '¥' + scope.row.price : scope.row.price + 'x' }}
-            </span>
+            <span class="price-text">{{ scope.row.price }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="unit" label="单位" width="80" />
-        <el-table-column prop="difficulty" label="难度等级" width="120">
+        <el-table-column prop="supplier" label="供应商" width="120" />
+        <el-table-column prop="remarks" label="备注" min-width="150" />
+        <el-table-column prop="updateTime" label="修改日期" width="150" />
+        <el-table-column prop="processCategory" label="工艺品类" width="120">
           <template #default="scope">
-            <el-rate
-              v-model="scope.row.difficulty"
-              disabled
-              show-score
-              text-color="#ff9900"
-              score-template="{value}"
-            />
+            <el-tag :type="getCategoryTagType(scope.row.processCategory)" size="small">
+              {{ scope.row.processCategory }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
           <template #default="scope">
             <el-switch
               v-model="scope.row.status"
-              active-value="active"
-              inactive-value="inactive"
-              @change="() => handleStatusChange(scope.row)"
+              active-text="启用"
+              inactive-text="停用"
+              @change="(val) => handleStatusChange(scope.row, val)"
             />
           </template>
         </el-table-column>
-        <el-table-column prop="updateTime" label="更新时间" width="150" />
       </el-table>
 
       <!-- 分页 -->
@@ -181,40 +182,29 @@
       >
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="工艺名称" prop="name">
-              <el-input v-model="processForm.name" placeholder="请输入工艺名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="工艺分类" prop="category">
-              <el-select v-model="processForm.category" placeholder="请选择分类">
+            <el-form-item label="工艺品类" prop="processCategory">
+              <el-select 
+                v-model="processForm.processCategory" 
+                placeholder="请选择工艺品类" 
+                filterable
+                @change="generateProcessName"
+              >
                 <el-option
-                  v-for="category in processCategories"
-                  :key="category.value"
-                  :label="category.label"
-                  :value="category.value"
+                  v-for="category in processCategoryTags"
+                  :key="category.id"
+                  :label="category.name"
+                  :value="category.name"
                 />
               </el-select>
             </el-form-item>
           </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="计价方式" prop="priceType">
-              <el-radio-group v-model="processForm.priceType">
-                <el-radio label="fixed">固定价格</el-radio>
-                <el-radio label="coefficient">系数计价</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item :label="processForm.priceType === 'fixed' ? '价格' : '系数'" prop="price">
+            <el-form-item label="单价" prop="price">
               <el-input-number
                 v-model="processForm.price"
                 :min="0"
-                :precision="processForm.priceType === 'fixed' ? 2 : 3"
-                :placeholder="processForm.priceType === 'fixed' ? '请输入价格' : '请输入系数'"
+                :precision="2"
+                placeholder="请输入单价"
                 style="width: 100%"
               />
             </el-form-item>
@@ -225,40 +215,42 @@
           <el-col :span="12">
             <el-form-item label="单位" prop="unit">
               <el-select v-model="processForm.unit" placeholder="请选择单位">
-                <el-option label="张" value="sheet" />
-                <el-option label="平方米" value="sqm" />
-                <el-option label="米" value="meter" />
-                <el-option label="次" value="time" />
+                <el-option label="元/次" value="元/次" />
+                <el-option label="元/平方米" value="元/平方米" />
+                <el-option label="元/千克" value="元/千克" />
+                <el-option label="元/米" value="元/米" />
+                <el-option label="元/小时" value="元/小时" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="难度等级" prop="difficulty">
-              <el-rate
-                v-model="processForm.difficulty"
-                :max="5"
-                show-text
-                :texts="['很简单', '简单', '一般', '困难', '很困难']"
-              />
+            <el-form-item label="供应商" prop="supplier">
+              <el-input v-model="processForm.supplier" placeholder="请输入供应商" />
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="工艺描述" prop="description">
+        <el-form-item label="工艺名称" prop="name">
           <el-input
-            v-model="processForm.description"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入工艺描述"
+            v-model="processForm.name"
+            placeholder="系统将自动生成名称，也可手动修改"
           />
         </el-form-item>
 
-        <el-form-item label="技术要求">
+        <el-form-item label="备注">
           <el-input
-            v-model="processForm.requirements"
+            v-model="processForm.remarks"
             type="textarea"
-            :rows="2"
-            placeholder="请输入技术要求"
+            :rows="3"
+            placeholder="请输入备注信息"
+          />
+        </el-form-item>
+
+        <el-form-item label="状态">
+          <el-switch
+            v-model="processForm.status"
+            active-text="启用"
+            inactive-text="停用"
           />
         </el-form-item>
       </el-form>
@@ -269,6 +261,101 @@
           <el-button type="primary" @click="saveProcess" :loading="saving">
             确定
           </el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 品类管理对话框 -->
+    <el-dialog
+      v-model="manageCategoriesDialogVisible"
+      title="工艺品类管理"
+      width="800px"
+    >
+      <!-- 添加新品类区域 -->
+      <div class="add-category-section">
+        <h4>添加新品类</h4>
+        <el-form ref="categoryFormRef" :model="categoryForm" :rules="categoryRules" inline>
+          <el-form-item label="品类名称" prop="name">
+            <el-input
+              v-model="categoryForm.name"
+              placeholder="请输入品类名称"
+              style="width: 150px"
+            />
+          </el-form-item>
+          <el-form-item label="描述" prop="description">
+            <el-input
+              v-model="categoryForm.description"
+              placeholder="请输入描述（可选）"
+              style="width: 200px"
+            />
+          </el-form-item>
+          <el-form-item label="标签颜色" prop="type">
+            <el-select v-model="categoryForm.type" placeholder="选择颜色" style="width: 100px">
+              <el-option label="蓝色" value="primary" />
+              <el-option label="绿色" value="success" />
+              <el-option label="橙色" value="warning" />
+              <el-option label="红色" value="danger" />
+              <el-option label="灰色" value="info" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="addCategory">
+              <el-icon><Plus /></el-icon>
+              添加品类
+            </el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <el-divider />
+
+      <!-- 现有品类列表 -->
+      <div class="existing-categories-section">
+        <h4>现有品类列表</h4>
+        <el-table :data="processCategoryTags" style="width: 100%">
+          <el-table-column prop="name" label="品类名称" width="120" />
+          <el-table-column prop="description" label="描述" min-width="180" />
+          <el-table-column prop="type" label="标签颜色" width="100">
+            <template #default="scope">
+              <el-tag :type="scope.row.type" size="small">{{ getTypeLabel(scope.row.type) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="使用数量" width="100">
+            <template #default="scope">
+              <span :class="{ 'usage-warning': getCategoryUsageCount(scope.row.name) > 0 }">
+                {{ getCategoryUsageCount(scope.row.name) }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="创建时间" width="150">
+            <template #default="scope">
+              <span>{{ scope.row.createTime || '系统默认' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="150">
+            <template #default="scope">
+              <el-button
+                type="primary"
+                size="small"
+                @click="editCategory(scope.row)"
+              >
+                编辑
+              </el-button>
+              <el-button
+                type="danger"
+                size="small"
+                @click="confirmDeleteCategory(scope.row)"
+              >
+                删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="manageCategoriesDialogVisible = false">关闭</el-button>
         </span>
       </template>
     </el-dialog>
@@ -285,31 +372,26 @@ export default {
   name: 'ProcessDatabase',
   setup() {
     const route = useRoute()
-    const processFormRef = ref(null)
     
     // 响应式数据
     const loading = ref(false)
     const saving = ref(false)
     const dialogVisible = ref(false)
+    const manageCategoriesDialogVisible = ref(false)
     const isEdit = ref(false)
-    const selectedProcesses = ref([])
+    const selectedCategoryId = ref(null)
+    const processFormRef = ref(null)
+    const categoryFormRef = ref(null)
     
     const searchForm = reactive({
       keyword: '',
-      priceType: '',
-      status: ''
+      supplier: ''
     })
-    
-    const processCategories = [
-      { label: '印刷工艺', value: 'printing' },
-      { label: '表面工艺', value: 'surface' },
-      { label: '后道工艺', value: 'finishing' },
-      { label: '特殊工艺', value: 'special' },
-      { label: '装订工艺', value: 'binding' }
-    ]
     
     const processes = ref([])
     const filteredProcesses = ref([])
+    const selectedProcesses = ref([])
+    const processCategoryTags = ref([])
     
     const pagination = reactive({
       currentPage: 1,
@@ -321,33 +403,43 @@ export default {
       id: null,
       name: '',
       category: '',
-      description: '',
-      priceType: 'fixed',
-      price: null,
       unit: '',
-      difficulty: 1,
-      requirements: '',
-      status: 'active'
+      price: null,
+      supplier: '',
+      remarks: '',
+      processCategory: '',
+      status: true
     })
     
+    const categoryForm = reactive({
+      name: '',
+      description: '',
+      type: 'primary'
+    })
+    
+    // 表单验证规则
+    const categoryRules = {
+      name: [
+        { required: true, message: '请输入品类名称', trigger: 'blur' },
+        { min: 2, max: 10, message: '品类名称长度在 2 到 10 个字符', trigger: 'blur' }
+      ],
+      type: [
+        { required: true, message: '请选择标签颜色', trigger: 'change' }
+      ]
+    }
+    
     const processRules = {
+      processCategory: [
+        { required: true, message: '请选择工艺品类', trigger: 'change' }
+      ],
       name: [
         { required: true, message: '请输入工艺名称', trigger: 'blur' }
       ],
-      category: [
-        { required: true, message: '请选择工艺分类', trigger: 'change' }
-      ],
-      description: [
-        { required: true, message: '请输入工艺描述', trigger: 'blur' }
-      ],
-      priceType: [
-        { required: true, message: '请选择计价方式', trigger: 'change' }
-      ],
-      price: [
-        { required: true, message: '请输入价格或系数', trigger: 'blur' }
-      ],
       unit: [
         { required: true, message: '请选择单位', trigger: 'change' }
+      ],
+      price: [
+        { required: true, message: '请输入单价', trigger: 'blur' }
       ]
     }
     
@@ -358,11 +450,9 @@ export default {
     
     const pageTitle = computed(() => {
       const categoryMap = {
-        'printing': '印刷工艺',
-        'surface': '表面工艺',
-        'finishing': '后道工艺',
-        'special': '特殊工艺',
-        'binding': '装订工艺'
+        'printing': '印刷工艺数据库',
+        'surface': '表面工艺数据库',
+        'finishing': '后道工艺数据库'
       }
       const category = route.params.category
       return categoryMap[category] || '工艺数据库'
@@ -372,13 +462,36 @@ export default {
       const categoryMap = {
         'printing': '印刷工艺管理',
         'surface': '表面工艺管理',
-        'finishing': '后道工艺管理',
-        'special': '特殊工艺管理',
-        'binding': '装订工艺管理'
+        'finishing': '后道工艺管理'
       }
       const category = route.params.category
       return categoryMap[category] || '工艺管理'
     })
+    
+    // 从实际数据中提取品类标签
+    const generateCategoryTagsFromData = (currentCategory) => {
+      const categoryProcesses = mockProcesses.processes.filter(item => item.category === currentCategory)
+      const uniqueCategories = [...new Set(categoryProcesses.map(item => item.processCategory).filter(Boolean))]
+      const colors = ['primary', 'success', 'warning', 'danger', 'info']
+      
+      return uniqueCategories.map((categoryName, index) => ({
+        id: index + 1,
+        name: categoryName,
+        type: colors[index % colors.length],
+        description: `${categoryName}相关工艺`,
+        createTime: '2024-01-15 10:00:00'
+      }))
+    }
+    
+    // 从localStorage加载工艺品类标签
+    const getStoredCategoryTags = (currentCategory) => {
+      const storageKey = `processCategoryTags_${currentCategory}`
+      const stored = localStorage.getItem(storageKey)
+      if (stored) {
+        return JSON.parse(stored)
+      }
+      return generateCategoryTagsFromData(currentCategory)
+    }
     
     // 从localStorage加载工艺数据
     const getStoredProcesses = (category) => {
@@ -387,8 +500,7 @@ export default {
       if (stored) {
         return JSON.parse(stored)
       }
-      // 如果localStorage中没有数据，使用mockData的默认数据
-      return mockProcesses.processDetails.filter(item => item.category === category)
+      return mockProcesses.processes.filter(item => item.category === category)
     }
     
     // 保存工艺数据到localStorage
@@ -397,57 +509,55 @@ export default {
       localStorage.setItem(storageKey, JSON.stringify(processesData))
     }
     
+    // 保存品类标签到localStorage
+    const saveCategoryTagsToStorage = (currentCategory, tags) => {
+      const storageKey = `processCategoryTags_${currentCategory}`
+      localStorage.setItem(storageKey, JSON.stringify(tags))
+    }
+    
+    // 智能生成工艺名称
+    const generateProcessName = () => {
+      const { processCategory } = processForm
+      
+      if (!processCategory) {
+        processForm.name = ''
+        return
+      }
+      
+      const isAutoGenerated = !processForm.name || 
+        processForm.name === processCategory
+      
+      if (isAutoGenerated) {
+        processForm.name = processCategory
+      }
+    }
+    
     // 方法
     const loadProcesses = () => {
       loading.value = true
       setTimeout(() => {
         const category = route.params.category
         processes.value = getStoredProcesses(category)
-        applyInitialFilter()
+        filteredProcesses.value = [...processes.value]
+        pagination.total = processes.value.length
+        processCategoryTags.value = getStoredCategoryTags(category)
         loading.value = false
       }, 500)
     }
     
-    const applyInitialFilter = () => {
-      const category = route.params.category
-      let filtered = [...processes.value]
-      
-      // 必须按分类过滤，每个模块只显示对应分类的数据
-      if (category) {
-        filtered = filtered.filter(item => item.category === category)
-      } else {
-        // 如果没有分类参数，默认显示空数据
-        filtered = []
-      }
-      
-      filteredProcesses.value = filtered
-      pagination.total = filtered.length
-    }
-    
     const handleSearch = () => {
-      const currentCategory = route.params.category
       let filtered = [...processes.value]
       
-      // 首先按当前路由分类过滤
-      if (currentCategory) {
-        filtered = filtered.filter(item => item.category === currentCategory)
-      } else {
-        filtered = []
-      }
-      
-      // 然后应用搜索条件
       if (searchForm.keyword) {
         filtered = filtered.filter(item =>
           item.name.toLowerCase().includes(searchForm.keyword.toLowerCase())
         )
       }
       
-      if (searchForm.priceType) {
-        filtered = filtered.filter(item => item.priceType === searchForm.priceType)
-      }
-      
-      if (searchForm.status) {
-        filtered = filtered.filter(item => item.status === searchForm.status)
+      if (searchForm.supplier) {
+        filtered = filtered.filter(item =>
+          item.supplier.toLowerCase().includes(searchForm.supplier.toLowerCase())
+        )
       }
       
       filteredProcesses.value = filtered
@@ -457,31 +567,16 @@ export default {
     
     const resetSearch = () => {
       searchForm.keyword = ''
-      searchForm.priceType = ''
-      searchForm.status = ''
-      applyInitialFilter()
-    }
-    
-    const getCategoryLabel = (category) => {
-      const categoryItem = processCategories.find(item => item.value === category)
-      return categoryItem ? categoryItem.label : category
-    }
-    
-    const getCategoryTagType = (category) => {
-      const typeMap = {
-        printing: 'primary',
-        finishing: 'success',
-        special: 'warning',
-        surface: 'info',
-        binding: 'default'
-      }
-      return typeMap[category] || 'default'
+      searchForm.supplier = ''
+      filteredProcesses.value = [...processes.value]
+      pagination.total = processes.value.length
+      pagination.currentPage = 1
     }
     
     const showAddDialog = () => {
       isEdit.value = false
-      processForm.category = route.params.category
       dialogVisible.value = true
+      resetForm()
     }
     
     const editProcess = (process) => {
@@ -490,84 +585,53 @@ export default {
       dialogVisible.value = true
     }
     
-    const saveProcess = async () => {
-      if (!processFormRef.value) return
-      
-      try {
-        await processFormRef.value.validate()
-        saving.value = true
-        
-        setTimeout(() => {
-          if (isEdit.value) {
-            const index = processes.value.findIndex(item => item.id === processForm.id)
-            if (index !== -1) {
-              processes.value[index] = { ...processForm, updateTime: new Date().toLocaleString() }
-            }
-            ElMessage.success('工艺更新成功')
-          } else {
-            const newProcess = {
-              ...processForm,
-              id: Date.now(),
-              updateTime: new Date().toLocaleString()
-            }
-            processes.value.push(newProcess)
-            ElMessage.success('工艺添加成功')
+    const saveProcess = () => {
+      saving.value = true
+      setTimeout(() => {
+        if (isEdit.value) {
+          const index = processes.value.findIndex(item => item.id === processForm.id)
+          if (index !== -1) {
+            processes.value[index] = { ...processForm, updateTime: new Date().toLocaleString() }
           }
-          
-          // 保存到localStorage
-          saveProcessesToStorage(route.params.category, processes.value)
-          
-          handleSearch()
-          dialogVisible.value = false
-          saving.value = false
-        }, 1000)
-      } catch (error) {
-        ElMessage.error('请完善必填信息')
-      }
-    }
-    
-    const deleteProcess = (process) => {
-      ElMessageBox.confirm(`确定要删除工艺"${process.name}"吗？`, '确认删除', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
-        const index = processes.value.findIndex(item => item.id === process.id)
-        if (index !== -1) {
-          processes.value.splice(index, 1)
-          
-          // 保存到localStorage
-          saveProcessesToStorage(route.params.category, processes.value)
-          
-          handleSearch()
-          ElMessage.success('删除成功')
+          ElMessage.success('工艺更新成功')
+        } else {
+          const newProcess = {
+            ...processForm,
+            id: Date.now(),
+            category: route.params.category,
+            updateTime: new Date().toLocaleString()
+          }
+          processes.value.push(newProcess)
+          ElMessage.success('工艺添加成功')
         }
-      }).catch(() => {
-        ElMessage.info('已取消删除')
-      })
+        
+        saveProcessesToStorage(route.params.category, processes.value)
+        handleSearch()
+        dialogVisible.value = false
+        saving.value = false
+      }, 1000)
     }
     
-    const handleStatusChange = (process) => {
-      // 更新状态后保存到localStorage
-      saveProcessesToStorage(route.params.category, processes.value)
-      ElMessage.success(`工艺状态已${process.status === 'active' ? '启用' : '禁用'}`)
+    const handleStatusChange = (process, value) => {
+      const index = processes.value.findIndex(item => item.id === process.id)
+      if (index !== -1) {
+        processes.value[index].status = value
+        saveProcessesToStorage(route.params.category, processes.value)
+        ElMessage.success(`工艺状态已${value ? '启用' : '停用'}`)
+      }
     }
     
     const resetForm = () => {
-      if (processFormRef.value) {
-        processFormRef.value.resetFields()
-      }
       Object.assign(processForm, {
         id: null,
         name: '',
-        category: route.params.category,
-        description: '',
-        priceType: 'fixed',
-        price: null,
+        category: '',
         unit: '',
-        difficulty: 1,
-        requirements: '',
-        status: 'active'
+        price: null,
+        supplier: '',
+        remarks: '',
+        processCategory: '',
+        status: true
       })
     }
     
@@ -608,9 +672,7 @@ export default {
           }
         })
         
-        // 保存到localStorage
         saveProcessesToStorage(route.params.category, processes.value)
-        
         handleSearch()
         ElMessage.success(`成功删除 ${selectedProcesses.value.length} 个工艺`)
       }).catch(() => {
@@ -623,30 +685,153 @@ export default {
     }
     
     const resetAllData = () => {
-      ElMessageBox.confirm('确定要重置所有数据吗？这将清空所有自定义的工艺数据，恢复到初始状态。', '重置确认', {
+      ElMessageBox.confirm('确定要重置所有数据吗？这将清空所有自定义的工艺和品类数据，恢复到初始状态。', '重置确认', {
         confirmButtonText: '确定重置',
         cancelButtonText: '取消',
         type: 'warning',
         confirmButtonClass: 'el-button--danger'
       }).then(() => {
-        // 清空localStorage中的所有相关数据
-        localStorage.removeItem('processes_printing')
-        localStorage.removeItem('processes_surface')
-        localStorage.removeItem('processes_finishing')
-        localStorage.removeItem('processes_special')
-        localStorage.removeItem('processes_binding')
-        
-        // 重新加载默认数据
+        const category = route.params.category
+        localStorage.removeItem(`processCategoryTags_${category}`)
+        localStorage.removeItem(`processes_${category}`)
         loadProcesses()
-        
         ElMessage.success('数据已重置为初始状态')
       }).catch(() => {
         ElMessage.info('已取消重置')
       })
     }
     
+    const manageCategoriesDialog = () => {
+      manageCategoriesDialogVisible.value = true
+    }
+    
+    const addCategory = () => {
+      // 先进行表单验证
+      if (!categoryForm.name) {
+        ElMessage.error('请输入品类名称')
+        return
+      }
+      
+      // 检查品类名称是否已存在
+      const exists = processCategoryTags.value.some(item => item.name === categoryForm.name)
+      if (exists) {
+        ElMessage.error('该品类名称已存在，请使用其他名称')
+        return
+      }
+      
+      const newCategory = {
+        id: Date.now(),
+        name: categoryForm.name,
+        description: categoryForm.description,
+        type: categoryForm.type,
+        createTime: new Date().toLocaleString()
+      }
+      processCategoryTags.value.push(newCategory)
+      
+      // 保存到localStorage
+      saveCategoryTagsToStorage(route.params.category, processCategoryTags.value)
+      
+      resetCategoryForm()
+      ElMessage.success('品类添加成功')
+    }
+    
+    const editCategory = (category) => {
+      Object.assign(categoryForm, category)
+    }
+    
+    const confirmDeleteCategory = (category) => {
+      const usageCount = getCategoryUsageCount(category.name)
+      
+      let confirmMessage = `确定要删除品类"${category.name}"吗？`
+      let warningMessage = ''
+      
+      if (usageCount > 0) {
+        warningMessage = `注意：该品类正在被 ${usageCount} 个工艺使用，删除后这些工艺的品类信息将被清空。`
+        confirmMessage = `${confirmMessage}\n\n${warningMessage}\n\n此操作不可恢复，请谨慎操作！`
+      } else {
+        confirmMessage = `${confirmMessage}\n\n此操作不可恢复。`
+      }
+      
+      ElMessageBox.confirm(confirmMessage, '删除确认', {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+        dangerouslyUseHTMLString: false
+      }).then(() => {
+        // 如果有工艺在使用这个品类，清空它们的品类信息
+        if (usageCount > 0) {
+          processes.value.forEach(process => {
+            if (process.processCategory === category.name) {
+              process.processCategory = ''
+            }
+          })
+          // 保存更新后的工艺数据
+          saveProcessesToStorage(route.params.category, processes.value)
+        }
+        
+        const index = processCategoryTags.value.findIndex(item => item.id === category.id)
+        if (index !== -1) {
+          processCategoryTags.value.splice(index, 1)
+          saveCategoryTagsToStorage(route.params.category, processCategoryTags.value)
+          ElMessage.success(`品类删除成功${usageCount > 0 ? `，已清空 ${usageCount} 个工艺的品类信息` : ''}`)
+          handleSearch()
+        }
+      }).catch(() => {
+        ElMessage.info('已取消删除')
+      })
+    }
+    
+    const filterByCategory = (category) => {
+      selectedCategoryId.value = category.id
+      let filtered = processes.value.filter(item => item.processCategory === category.name)
+      filteredProcesses.value = filtered
+      pagination.total = filtered.length
+      pagination.currentPage = 1
+    }
+    
+    const clearCategoryFilter = () => {
+      selectedCategoryId.value = null
+      filteredProcesses.value = [...processes.value]
+      pagination.total = processes.value.length
+      pagination.currentPage = 1
+    }
+    
+    const getCategoryUsageCount = (categoryName) => {
+      return processes.value.filter(item => item.processCategory === categoryName).length
+    }
+    
+    const getTagTypeByUsage = (category) => {
+      const usageCount = getCategoryUsageCount(category.name)
+      if (usageCount === 0) return 'info'
+      if (usageCount <= 2) return 'warning'
+      return category.type
+    }
+    
+    const getTypeLabel = (type) => {
+      const typeMap = {
+        'primary': '蓝色',
+        'success': '绿色',
+        'warning': '橙色',
+        'danger': '红色',
+        'info': '灰色'
+      }
+      return typeMap[type] || '默认'
+    }
+    
+    const getCategoryTagType = (categoryName) => {
+      const category = processCategoryTags.value.find(item => item.name === categoryName)
+      return category ? category.type : 'default'
+    }
+    
+    const resetCategoryForm = () => {
+      categoryForm.name = ''
+      categoryForm.description = ''
+      categoryForm.type = 'primary'
+    }
+    
     // 监听路由变化
-    watch(() => route.params.category, (newCategory) => {
+    watch(() => route.params.category, () => {
       loadProcesses()
     })
     
@@ -659,35 +844,36 @@ export default {
       // 响应式数据
       route,
       processFormRef,
+      categoryFormRef,
       loading,
       saving,
       dialogVisible,
+      manageCategoriesDialogVisible,
       isEdit,
       searchForm,
-      processCategories,
+      processCategoryTags,
       processes,
       filteredProcesses,
       selectedProcesses,
+      selectedCategoryId,
       pagination,
+      categoryForm,
       processForm,
+      categoryRules,
       processRules,
       
-      // 计算属性
+      // 计算属�?
       dialogTitle,
       pageTitle,
       cardTitle,
       
       // 方法
       loadProcesses,
-      applyInitialFilter,
       handleSearch,
       resetSearch,
-      getCategoryLabel,
-      getCategoryTagType,
       showAddDialog,
       editProcess,
       saveProcess,
-      deleteProcess,
       handleStatusChange,
       resetForm,
       handleSizeChange,
@@ -696,7 +882,19 @@ export default {
       batchEdit,
       batchDelete,
       exportData,
-      resetAllData
+      resetAllData,
+      manageCategoriesDialog,
+      addCategory,
+      editCategory,
+      confirmDeleteCategory,
+      filterByCategory,
+      clearCategoryFilter,
+      getCategoryUsageCount,
+      getTagTypeByUsage,
+      getTypeLabel,
+      getCategoryTagType,
+      resetCategoryForm,
+      generateProcessName
     }
   }
 }
@@ -756,6 +954,60 @@ export default {
   gap: 12px;
 }
 
+.category-tags-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.tags-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.tags-title {
+  font-weight: 600;
+  color: #374151;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.category-tag {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.category-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.category-tag.active-tag {
+  border-color: #409eff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+.usage-count {
+  margin-left: 4px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.category-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .search-section {
   margin-bottom: 20px;
   padding: 16px;
@@ -775,105 +1027,32 @@ export default {
   justify-content: center;
 }
 
+.add-category-section {
+  margin-bottom: 20px;
+}
+
+.add-category-section h4 {
+  margin: 0 0 16px 0;
+  color: #374151;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.existing-categories-section h4 {
+  margin: 0 0 16px 0;
+  color: #374151;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.usage-warning {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .process-database {
-    padding: 10px;
-  }
-  
-  .header-right {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .search-section .el-row {
-    flex-direction: column;
-  }
-  
-  .search-section .el-col {
-    margin-bottom: 12px;
-  }
-}
-
-/* 表格样式优化 */
-:deep(.el-table) {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-:deep(.el-table__header-wrapper) {
-  border-radius: 8px 8px 0 0;
-}
-
-:deep(.el-table__body-wrapper) {
-  border-radius: 0 0 8px 8px;
-}
-
-:deep(.el-button--text) {
-  color: #409eff;
-  font-weight: 500;
-}
-
-:deep(.el-button--text:hover) {
-  color: #66b1ff;
-  background-color: #ecf5ff;
-}
-
-/* 对话框样式 */
-:deep(.el-dialog) {
-  border-radius: 12px;
-}
-
-:deep(.el-dialog__header) {
-  padding: 20px 20px 10px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-:deep(.el-dialog__body) {
-  padding: 20px;
-}
-
-:deep(.el-dialog__footer) {
-  padding: 10px 20px 20px;
-  border-top: 1px solid #f0f0f0;
-}
-
-/* 表单样式 */
-:deep(.el-form-item__label) {
-  font-weight: 500;
-  color: #374151;
-}
-
-:deep(.el-input__wrapper) {
-  border-radius: 6px;
-}
-
-:deep(.el-select .el-input__wrapper) {
-  border-radius: 6px;
-}
-
-:deep(.el-textarea__inner) {
-  border-radius: 6px;
-}
-
-/* 分页样式 */
-:deep(.el-pagination) {
-  justify-content: center;
-}
-
-:deep(.el-pagination .el-pager li) {
-  border-radius: 4px;
-  margin: 0 2px;
-}
-
-:deep(.el-pagination .el-pager li.is-active) {
-  background-color: #409eff;
-  color: white;
 }
 </style>
