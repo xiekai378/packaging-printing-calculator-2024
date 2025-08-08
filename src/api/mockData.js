@@ -459,6 +459,7 @@ export const mockProcesses = {
       unit: '元/平方米',
       difficulty: 1,
       requirements: '适合大批量文字印刷，成本低',
+      processCategory: '胶印工艺',
       status: 'active',
       updateTime: '2024-01-15 10:30:00'
     },
@@ -472,6 +473,7 @@ export const mockProcesses = {
       unit: '元/平方米',
       difficulty: 2,
       requirements: 'CMYK四色印刷，色彩还原度高',
+      processCategory: '胶印工艺',
       status: 'active',
       updateTime: '2024-01-15 10:31:00'
     },
@@ -485,6 +487,7 @@ export const mockProcesses = {
       unit: '元/平方米',
       difficulty: 3,
       requirements: 'CMYK+专色，高端印刷品',
+      processCategory: '胶印工艺',
       status: 'active',
       updateTime: '2024-01-15 10:32:00'
     },
@@ -498,6 +501,7 @@ export const mockProcesses = {
       unit: '元/平方米',
       difficulty: 3,
       requirements: '适合薄膜、纸张等柔性材料印刷',
+      processCategory: '柔印工艺',
       status: 'active',
       updateTime: '2024-01-15 10:33:00'
     },
@@ -511,6 +515,7 @@ export const mockProcesses = {
       unit: '元/平方米',
       difficulty: 4,
       requirements: '制版成本高，适合超大批量高质量印刷',
+      processCategory: '凹印工艺',
       status: 'active',
       updateTime: '2024-01-15 10:34:00'
     },
@@ -524,6 +529,7 @@ export const mockProcesses = {
       unit: '元/张',
       difficulty: 1,
       requirements: '无需制版，起印量小，可变数据印刷',
+      processCategory: '数码印刷',
       status: 'active',
       updateTime: '2024-01-15 10:35:00'
     },
@@ -537,6 +543,7 @@ export const mockProcesses = {
       unit: '元/平方米',
       difficulty: 3,
       requirements: '适合特殊材料和厚墨层印刷',
+      processCategory: '丝网印刷',
       status: 'active',
       updateTime: '2024-01-15 10:36:00'
     },
@@ -552,6 +559,7 @@ export const mockProcesses = {
       unit: '元/平方米',
       difficulty: 2,
       requirements: '需要UV固化设备，可做局部效果',
+      processCategory: 'UV上光',
       status: 'active',
       updateTime: '2024-01-15 10:37:00'
     },
@@ -565,6 +573,7 @@ export const mockProcesses = {
       unit: '元/平方米',
       difficulty: 2,
       requirements: '整版UV上光，增加光泽和保护性',
+      processCategory: 'UV上光',
       status: 'active',
       updateTime: '2024-01-15 10:38:00'
     },
@@ -578,6 +587,7 @@ export const mockProcesses = {
       unit: '元/平方米',
       difficulty: 2,
       requirements: '提高表面光泽度和耐磨性',
+      processCategory: '覆膜工艺',
       status: 'active',
       updateTime: '2024-01-15 10:39:00'
     },
@@ -591,6 +601,7 @@ export const mockProcesses = {
       unit: '元/平方米',
       difficulty: 2,
       requirements: '哑光效果，手感好，档次高',
+      processCategory: '覆膜工艺',
       status: 'active',
       updateTime: '2024-01-15 10:40:00'
     },
@@ -604,6 +615,7 @@ export const mockProcesses = {
       unit: '元/平方米',
       difficulty: 1,
       requirements: '环保水性光油，成本较低',
+      processCategory: '上光工艺',
       status: 'active',
       updateTime: '2024-01-15 10:41:00'
     },
@@ -617,6 +629,7 @@ export const mockProcesses = {
       unit: '元/平方米',
       difficulty: 1,
       requirements: '传统油性光油，光泽效果好',
+      processCategory: '上光工艺',
       status: 'active',
       updateTime: '2024-01-15 10:42:00'
     },
@@ -632,6 +645,7 @@ export const mockProcesses = {
       unit: '元/张',
       difficulty: 3,
       requirements: '需要制作烫金版，金属光泽效果',
+      processCategory: '烫印工艺',
       status: 'active',
       updateTime: '2024-01-15 10:43:00'
     },
@@ -645,6 +659,7 @@ export const mockProcesses = {
       unit: '元/张',
       difficulty: 3,
       requirements: '银色电化铝烫印',
+      processCategory: '烫印工艺',
       status: 'active',
       updateTime: '2024-01-15 10:44:00'
     },
@@ -658,6 +673,7 @@ export const mockProcesses = {
       unit: '元/张',
       difficulty: 3,
       requirements: '需要制作击凸版，立体效果明显',
+      processCategory: '压凹凸工艺',
       status: 'active',
       updateTime: '2024-01-15 10:45:00'
     },
@@ -671,6 +687,7 @@ export const mockProcesses = {
       unit: '元/张',
       difficulty: 2,
       requirements: '压印凹陷效果，增加层次感',
+      processCategory: '压凹凸工艺',
       status: 'active',
       updateTime: '2024-01-15 10:46:00'
     },
@@ -684,6 +701,7 @@ export const mockProcesses = {
       unit: '元/张',
       difficulty: 2,
       requirements: '制作圆角模切刀版',
+      processCategory: '模切工艺',
       status: 'active',
       updateTime: '2024-01-15 10:47:00'
     },
@@ -697,6 +715,7 @@ export const mockProcesses = {
       unit: '元/张',
       difficulty: 4,
       requirements: '复杂异形模切，需要精密刀版',
+      processCategory: '模切工艺',
       status: 'active',
       updateTime: '2024-01-15 10:48:00'
     },
@@ -710,6 +729,7 @@ export const mockProcesses = {
       unit: '元/张',
       difficulty: 1,
       requirements: '简单对折，可机器或手工完成',
+      processCategory: '折页工艺',
       status: 'active',
       updateTime: '2024-01-15 10:49:00'
     },
@@ -723,6 +743,7 @@ export const mockProcesses = {
       unit: '元/张',
       difficulty: 2,
       requirements: '三等分折页，需要精确定位',
+      processCategory: '折页工艺',
       status: 'active',
       updateTime: '2024-01-15 10:50:00'
     },
@@ -736,6 +757,7 @@ export const mockProcesses = {
       unit: '元/张',
       difficulty: 3,
       requirements: '多层折叠，工艺复杂',
+      processCategory: '折页工艺',
       status: 'active',
       updateTime: '2024-01-15 10:51:00'
     },
@@ -749,6 +771,7 @@ export const mockProcesses = {
       unit: '元/本',
       difficulty: 1,
       requirements: '适合页数较少的册子装订',
+      processCategory: '装订工艺',
       status: 'active',
       updateTime: '2024-01-15 10:52:00'
     },
@@ -762,6 +785,7 @@ export const mockProcesses = {
       unit: '元/本',
       difficulty: 2,
       requirements: '适合页数较多的书籍装订',
+      processCategory: '装订工艺',
       status: 'active',
       updateTime: '2024-01-15 10:53:00'
     },
@@ -775,6 +799,7 @@ export const mockProcesses = {
       unit: '元/张',
       difficulty: 1,
       requirements: '标准圆孔或方孔',
+      processCategory: '打孔工艺',
       status: 'active',
       updateTime: '2024-01-15 10:54:00'
     }

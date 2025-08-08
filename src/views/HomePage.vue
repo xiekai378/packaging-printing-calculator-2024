@@ -63,15 +63,28 @@
                 v-model="quoteForm.materialId"
                 placeholder="请选择材料"
                 style="width: 100%"
+                filterable
                 @change="calculateQuote"
               >
-                <el-option
-                  v-for="material in materials"
-                  :key="material.id"
-                  :label="`${material.name} - ¥${material.standardPrice}/张`"
-                  :value="material.id"
+                <el-option-group
+                  v-for="category in materialCategories"
+                  :key="category.name"
+                  :label="category.name"
                 >
-                </el-option>
+                  <el-option
+                    v-for="material in category.materials"
+                    :key="material.id"
+                    :label="`${material.name} - ¥${material.price}/${material.unit}`"
+                    :value="material.id"
+                  >
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span>{{ material.name }}</span>
+                      <el-tag size="small" :type="getCategoryTagType(material.materialCategory)">
+                        {{ material.materialCategory }}
+                      </el-tag>
+                    </div>
+                  </el-option>
+                </el-option-group>
               </el-select>
             </el-form-item>
 
@@ -81,15 +94,26 @@
                 v-model="quoteForm.printingProcess"
                 placeholder="请选择印刷工艺"
                 style="width: 100%"
+                filterable
                 @change="onPrintingProcessChange"
               >
-                <el-option
-                  v-for="process in printingProcesses"
-                  :key="process.id"
-                  :label="process.name"
-                  :value="process.id"
+                <el-option-group
+                  v-for="category in printingCategories"
+                  :key="category.name"
+                  :label="category.name"
                 >
-                </el-option>
+                  <el-option
+                    v-for="process in category.processes"
+                    :key="process.id"
+                    :label="`${process.name} - ¥${process.price}/${process.unit || '平方米'}`"
+                    :value="process.id"
+                  >
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span>{{ process.name }}</span>
+                      <span style="color: #999; font-size: 12px;">{{ process.description }}</span>
+                    </div>
+                  </el-option>
+                </el-option-group>
               </el-select>
             </el-form-item>
 
@@ -138,16 +162,27 @@
                 v-model="quoteForm.surfaceProcess"
                 placeholder="请选择表面工艺（可选）"
                 style="width: 100%"
+                filterable
                 clearable
                 @change="calculateQuote"
               >
-                <el-option
-                  v-for="process in surfaceProcesses"
-                  :key="process.id"
-                  :label="`${process.name} - ¥${process.price}/张`"
-                  :value="process.id"
+                <el-option-group
+                  v-for="category in surfaceCategories"
+                  :key="category.name"
+                  :label="category.name"
                 >
-                </el-option>
+                  <el-option
+                    v-for="process in category.processes"
+                    :key="process.id"
+                    :label="`${process.name} - ¥${process.price}/${process.unit || '平方米'}`"
+                    :value="process.id"
+                  >
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span>{{ process.name }}</span>
+                      <el-tag size="small" type="success">{{ process.processCategory }}</el-tag>
+                    </div>
+                  </el-option>
+                </el-option-group>
               </el-select>
             </el-form-item>
 
@@ -157,16 +192,27 @@
                 v-model="quoteForm.finishingProcess"
                 placeholder="请选择后道工艺（可选）"
                 style="width: 100%"
+                filterable
                 clearable
                 @change="calculateQuote"
               >
-                <el-option
-                  v-for="process in finishingProcesses"
-                  :key="process.id"
-                  :label="`${process.name} - ¥${process.price}/张`"
-                  :value="process.id"
+                <el-option-group
+                  v-for="category in finishingCategories"
+                  :key="category.name"
+                  :label="category.name"
                 >
-                </el-option>
+                  <el-option
+                    v-for="process in category.processes"
+                    :key="process.id"
+                    :label="`${process.name} - ¥${process.price}/${process.unit || '张'}`"
+                    :value="process.id"
+                  >
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span>{{ process.name }}</span>
+                      <el-tag size="small" type="warning">{{ process.processCategory }}</el-tag>
+                    </div>
+                  </el-option>
+                </el-option-group>
               </el-select>
             </el-form-item>
           </el-form>
@@ -333,6 +379,88 @@ export default {
       )
     })
 
+    // 材料分组
+    const materialCategories = computed(() => {
+      const categories = {}
+      materials.value.forEach(material => {
+        const categoryName = material.materialCategory || '其他'
+        if (!categories[categoryName]) {
+          categories[categoryName] = {
+            name: categoryName,
+            materials: []
+          }
+        }
+        categories[categoryName].materials.push(material)
+      })
+      return Object.values(categories)
+    })
+
+    // 印刷工艺分组
+    const printingCategories = computed(() => {
+      const categories = {}
+      printingProcesses.value.forEach(process => {
+        const categoryName = process.processCategory || '其他工艺'
+        if (!categories[categoryName]) {
+          categories[categoryName] = {
+            name: categoryName,
+            processes: []
+          }
+        }
+        categories[categoryName].processes.push(process)
+      })
+      return Object.values(categories)
+    })
+
+    // 表面工艺分组
+    const surfaceCategories = computed(() => {
+      const categories = {}
+      surfaceProcesses.value.forEach(process => {
+        const categoryName = process.processCategory || '其他工艺'
+        if (!categories[categoryName]) {
+          categories[categoryName] = {
+            name: categoryName,
+            processes: []
+          }
+        }
+        categories[categoryName].processes.push(process)
+      })
+      return Object.values(categories)
+    })
+
+    // 后道工艺分组
+    const finishingCategories = computed(() => {
+      const categories = {}
+      finishingProcesses.value.forEach(process => {
+        const categoryName = process.processCategory || '其他工艺'
+        if (!categories[categoryName]) {
+          categories[categoryName] = {
+            name: categoryName,
+            processes: []
+          }
+        }
+        categories[categoryName].processes.push(process)
+      })
+      return Object.values(categories)
+    })
+
+    // 获取品类标签类型
+    const getCategoryTagType = (categoryName) => {
+      const typeMap = {
+        '铜版纸': 'primary',
+        '哑粉纸': 'success',
+        '胶版纸': 'info',
+        '珠光纸': 'warning',
+        '金银卡': 'danger',
+        '牛皮纸': 'info',
+        '纸质不干胶': 'primary',
+        'PET不干胶': 'success',
+        'PVC不干胶': 'warning',
+        '防伪不干胶': 'danger',
+        '热敏不干胶': 'info'
+      }
+      return typeMap[categoryName] || 'default'
+    }
+
     // 价格明细表格数据
     const priceDetails = computed(() => {
       const details = []
@@ -343,7 +471,7 @@ export default {
           details.push({
             item: '材料',
             specification: material.name,
-            unitPrice: material.standardPrice.toFixed(2),
+            unitPrice: (material.price / 1000).toFixed(4),
             quantity: quoteForm.quantity,
             subtotal: quoteResult.materialCost.toFixed(2)
           })
@@ -371,7 +499,7 @@ export default {
           details.push({
             item: '表面工艺',
             specification: process.name,
-            unitPrice: process.price.toFixed(2),
+            unitPrice: process.price.toFixed(4),
             quantity: quoteForm.quantity,
             subtotal: quoteResult.surfaceCost.toFixed(2)
           })
@@ -384,7 +512,7 @@ export default {
           details.push({
             item: '后道工艺',
             specification: process.name,
-            unitPrice: process.price.toFixed(2),
+            unitPrice: process.price.toFixed(4),
             quantity: quoteForm.quantity,
             subtotal: quoteResult.finishingCost.toFixed(2)
           })
@@ -418,21 +546,42 @@ export default {
       if (quoteForm.materialId) {
         const material = materials.value.find(m => m.id === quoteForm.materialId)
         if (material) {
-          quoteResult.materialCost = material.standardPrice * quoteForm.quantity
+          // 根据单位计算材料费用
+          if (material.unit === '元/吨') {
+            // 假设每张纸重量为克重/1000000 * 面积(平方米)
+            const area = (quoteForm.width * quoteForm.height) / 1000000 // 转换为平方米
+            const weight = (material.weight || 80) / 1000 // 转换为千克
+            const materialWeight = area * weight * quoteForm.quantity / 1000 // 转换为吨
+            quoteResult.materialCost = material.price * materialWeight
+          } else if (material.unit === '元/平方米') {
+            const area = (quoteForm.width * quoteForm.height) / 1000000 // 转换为平方米
+            quoteResult.materialCost = material.price * area * quoteForm.quantity
+          } else {
+            // 默认按张计算
+            quoteResult.materialCost = (material.price / 1000) * quoteForm.quantity
+          }
         }
       }
 
       // 计算印刷费用
-      if (quoteForm.printingProcess && quoteForm.printingSize && quoteForm.printingColor) {
-        const printingPrice = calculatePrintingPrice()
-        quoteResult.printingCost = printingPrice * quoteForm.quantity / 1000 // 转换为实际数量
+      if (quoteForm.printingProcess && quoteForm.printingColor) {
+        const process = printingProcesses.value.find(p => p.id === quoteForm.printingProcess)
+        if (process) {
+          const area = (quoteForm.width * quoteForm.height) / 1000000 // 转换为平方米
+          quoteResult.printingCost = process.price * area * quoteForm.quantity
+        }
       }
 
       // 计算表面工艺费用
       if (quoteForm.surfaceProcess) {
         const process = surfaceProcesses.value.find(p => p.id === quoteForm.surfaceProcess)
         if (process) {
-          quoteResult.surfaceCost = process.price * quoteForm.quantity
+          if (process.unit && process.unit.includes('平方米')) {
+            const area = (quoteForm.width * quoteForm.height) / 1000000
+            quoteResult.surfaceCost = process.price * area * quoteForm.quantity
+          } else {
+            quoteResult.surfaceCost = process.price * quoteForm.quantity
+          }
         }
       }
 
@@ -449,39 +598,26 @@ export default {
                          quoteResult.surfaceCost + quoteResult.finishingCost
     }
 
-    // 计算印刷价格（基于之前的价格逻辑）
-    const calculatePrintingPrice = () => {
-      const colorName = printingColors.value.find(c => c.id === quoteForm.printingColor)?.name
-      const quantity = quoteForm.quantity
-
-      // 基础价格
-      const basePrices = {
-        '单色': 260,
-        '双色': 380,
-        '四色': 520,
-        '六色': 680
-      }
-
-      const basePrice = basePrices[colorName] || 260
-      const incrementPer1000 = 30
-      const pricePerSheetAfter10000 = 0.04
-
-      if (quantity <= 1200) {
-        return basePrice
-      } else if (quantity >= 10000) {
-        return Math.round(pricePerSheetAfter10000 * 1000 * (basePrices[colorName] / 260))
-      } else {
-        const rangeIndex = Math.floor((quantity - 1200) / 1000)
-        return basePrice + rangeIndex * incrementPer1000
-      }
-    }
-
     // 保存报价
     const saveQuote = () => {
       if (quoteResult.total <= 0) {
         ElMessage.warning('请先完成报价计算')
         return
       }
+      
+      // 保存报价到localStorage
+      const quoteData = {
+        id: Date.now(),
+        form: { ...quoteForm },
+        result: { ...quoteResult },
+        details: priceDetails.value,
+        createTime: new Date().toLocaleString()
+      }
+      
+      const savedQuotes = JSON.parse(localStorage.getItem('savedQuotes') || '[]')
+      savedQuotes.unshift(quoteData)
+      localStorage.setItem('savedQuotes', JSON.stringify(savedQuotes.slice(0, 50))) // 只保留最近50条
+      
       ElMessage.success('报价已保存')
     }
 
@@ -491,7 +627,7 @@ export default {
         ElMessage.warning('请先完成报价计算')
         return
       }
-      ElMessage.success('报价单导出成功')
+      ElMessage.success('报价单导出功能开发中...')
     }
 
     // 重置表单
@@ -517,31 +653,107 @@ export default {
       })
     }
 
-    // 初始化数据
-    onMounted(() => {
-      materials.value = mockMaterials.materials
-      printingProcesses.value = [
-        { id: 1, name: '胶印', description: '平版胶印，适用于大批量印刷' },
-        { id: 2, name: '丝网印刷', description: '丝网印刷，适用于特殊材料' },
-        { id: 3, name: 'UV印刷', description: 'UV固化印刷，色彩鲜艳' }
-      ]
+    // 从localStorage加载数据
+    const loadDataFromStorage = () => {
+      // 加载材料数据（合并所有分类）
+      const paperMaterials = JSON.parse(localStorage.getItem('materials_paper') || '[]')
+      const specialtyMaterials = JSON.parse(localStorage.getItem('materials_specialty-paper') || '[]')
+      const adhesiveMaterials = JSON.parse(localStorage.getItem('materials_adhesive') || '[]')
+      
+      // 如果localStorage中没有数据，使用默认数据
+      if (paperMaterials.length === 0 && specialtyMaterials.length === 0 && adhesiveMaterials.length === 0) {
+        materials.value = mockMaterials.materials.map(material => ({
+          ...material,
+          displayName: `${material.name} (${material.materialCategory})`
+        }))
+      } else {
+        materials.value = [...paperMaterials, ...specialtyMaterials, ...adhesiveMaterials].map(material => ({
+          ...material,
+          displayName: `${material.name} (${material.materialCategory})`
+        }))
+      }
+
+      // 加载印刷工艺数据
+      const printingData = JSON.parse(localStorage.getItem('processes_printing') || '[]')
+      if (printingData.length === 0) {
+        printingProcesses.value = mockProcesses.processDetails
+          .filter(p => p.category === 'printing')
+          .map(p => ({
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            price: parseFloat(p.price) || 1.0,
+            unit: p.unit,
+            processCategory: p.processCategory
+          }))
+      } else {
+        printingProcesses.value = printingData.map(p => ({
+          id: p.id,
+          name: p.name,
+          description: p.description || p.requirements,
+          price: parseFloat(p.price) || 1.0,
+          unit: p.unit,
+          processCategory: p.processCategory
+        }))
+      }
+
+      // 加载表面工艺数据
+      const surfaceData = JSON.parse(localStorage.getItem('processes_surface') || '[]')
+      if (surfaceData.length === 0) {
+        surfaceProcesses.value = mockProcesses.processDetails
+          .filter(p => p.category === 'surface')
+          .map(p => ({
+            id: p.id,
+            name: p.name,
+            price: parseFloat(p.price) || 1.0,
+            unit: p.unit,
+            processCategory: p.processCategory
+          }))
+      } else {
+        surfaceProcesses.value = surfaceData.map(p => ({
+          id: p.id,
+          name: p.name,
+          price: parseFloat(p.price) || 1.0,
+          unit: p.unit,
+          processCategory: p.processCategory
+        }))
+      }
+
+      // 加载后道工艺数据
+      const finishingData = JSON.parse(localStorage.getItem('processes_finishing') || '[]')
+      if (finishingData.length === 0) {
+        finishingProcesses.value = mockProcesses.processDetails
+          .filter(p => p.category === 'finishing')
+          .map(p => ({
+            id: p.id,
+            name: p.name,
+            price: parseFloat(p.price) || 0.1,
+            unit: p.unit,
+            processCategory: p.processCategory
+          }))
+      } else {
+        finishingProcesses.value = finishingData.map(p => ({
+          id: p.id,
+          name: p.name,
+          price: parseFloat(p.price) || 0.1,
+          unit: p.unit,
+          processCategory: p.processCategory
+        }))
+      }
+
+      // 印刷规格数据
       printingSizes.value = [
         { id: 1, categoryId: 1, name: '全开', specification: '1194×889mm' },
         { id: 2, categoryId: 1, name: '对开', specification: '597×889mm' },
         { id: 3, categoryId: 1, name: '四开', specification: '597×444mm' },
-        { id: 4, categoryId: 2, name: '小幅面', specification: '400×300mm' },
-        { id: 5, categoryId: 3, name: 'UV全开', specification: '1194×889mm' }
+        { id: 4, categoryId: 1, name: '八开', specification: '297×444mm' },
+        { id: 5, categoryId: 1, name: '十六开', specification: '297×222mm' }
       ]
-      surfaceProcesses.value = mockProcesses.processDetails.filter(p => p.category === 'surface').map(p => ({
-        id: p.id,
-        name: p.name,
-        price: parseFloat(p.price) || 1.0
-      }))
-      finishingProcesses.value = mockProcesses.processDetails.filter(p => p.category === 'finishing').map(p => ({
-        id: p.id,
-        name: p.name,
-        price: parseFloat(p.price) || 0.1
-      }))
+    }
+
+    // 初始化数据
+    onMounted(() => {
+      loadDataFromStorage()
     })
 
     return {
@@ -554,6 +766,11 @@ export default {
       printingColors,
       availableSizes,
       priceDetails,
+      materialCategories,
+      printingCategories,
+      surfaceCategories,
+      finishingCategories,
+      getCategoryTagType,
       onPrintingProcessChange,
       calculateQuote,
       saveQuote,

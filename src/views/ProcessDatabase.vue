@@ -468,12 +468,14 @@ export default {
       return categoryMap[category] || '工艺管理'
     })
     
-    // 从实际数据中提取品类标签
+    // 从实际数据中提取品类标签 - 优化版本
     const generateCategoryTagsFromData = (currentCategory) => {
-      const categoryProcesses = mockProcesses.processes.filter(item => item.category === currentCategory)
-      const uniqueCategories = [...new Set(categoryProcesses.map(item => item.processCategory).filter(Boolean))]
+      // 获取当前分类下的所有工艺（包括localStorage中的数据）
+      const storedProcesses = getStoredProcesses(currentCategory)
+      const uniqueCategories = [...new Set(storedProcesses.map(item => item.processCategory).filter(Boolean))]
       const colors = ['primary', 'success', 'warning', 'danger', 'info']
       
+      // 确保品类标签与实际工艺数据完全对应
       return uniqueCategories.map((categoryName, index) => ({
         id: index + 1,
         name: categoryName,
@@ -483,14 +485,53 @@ export default {
       }))
     }
     
-    // 从localStorage加载工艺品类标签
+    // 从localStorage加载工艺品类标签 - 优化版本
     const getStoredCategoryTags = (currentCategory) => {
       const storageKey = `processCategoryTags_${currentCategory}`
       const stored = localStorage.getItem(storageKey)
+      
+      // 获取当前实际工艺数据中的品类（基于最新的工艺数据）
+      const actualCategories = generateCategoryTagsFromData(currentCategory)
+      
       if (stored) {
-        return JSON.parse(stored)
+        const storedTags = JSON.parse(stored)
+        // 合并存储的标签和实际数据中的标签，确保完全对应
+        const actualCategoryNames = actualCategories.map(cat => cat.name)
+        const mergedTags = []
+        
+        // 先添加实际存在的品类，保持用户自定义的属性
+        actualCategories.forEach(actualCat => {
+          const existingTag = storedTags.find(tag => tag.name === actualCat.name)
+          if (existingTag) {
+            // 保持用户自定义的颜色和描述
+            mergedTags.push({
+              ...actualCat,
+              type: existingTag.type,
+              description: existingTag.description,
+              createTime: existingTag.createTime
+            })
+          } else {
+            mergedTags.push(actualCat)
+          }
+        })
+        
+        // 再添加用户自定义的品类（但不在实际数据中的）
+        storedTags.forEach(storedTag => {
+          if (!actualCategoryNames.includes(storedTag.name)) {
+            mergedTags.push(storedTag)
+          }
+        })
+        
+        // 立即保存合并后的结果，确保数据同步
+        saveCategoryTagsToStorage(currentCategory, mergedTags)
+        
+        return mergedTags
       }
-      return generateCategoryTagsFromData(currentCategory)
+      
+      // 如果没有存储的数据，直接返回从工艺数据中提取的品类
+      const defaultTags = actualCategories
+      saveCategoryTagsToStorage(currentCategory, defaultTags)
+      return defaultTags
     }
     
     // 从localStorage加载工艺数据
@@ -500,7 +541,7 @@ export default {
       if (stored) {
         return JSON.parse(stored)
       }
-      return mockProcesses.processes.filter(item => item.category === category)
+      return mockProcesses.processDetails.filter(item => item.category === category)
     }
     
     // 保存工艺数据到localStorage
@@ -532,7 +573,7 @@ export default {
       }
     }
     
-    // 方法
+    // 方法 - 优化版本
     const loadProcesses = () => {
       loading.value = true
       setTimeout(() => {
@@ -540,9 +581,60 @@ export default {
         processes.value = getStoredProcesses(category)
         filteredProcesses.value = [...processes.value]
         pagination.total = processes.value.length
+        
+        // 确保品类标签与工艺数据同步
         processCategoryTags.value = getStoredCategoryTags(category)
+        
+        // 验证数据一致性并修复不匹配的问题
+        validateAndFixCategoryConsistency(category)
+        
         loading.value = false
       }, 500)
+    }
+    
+    // 验证并修复品类数据一致性
+    const validateAndFixCategoryConsistency = (category) => {
+      const currentProcesses = processes.value
+      const currentTags = processCategoryTags.value
+      const tagNames = currentTags.map(tag => tag.name)
+      
+      // 检查是否有工艺的品类不在标签列表中
+      const missingCategories = []
+      currentProcesses.forEach(process => {
+        if (process.processCategory && !tagNames.includes(process.processCategory)) {
+          if (!missingCategories.includes(process.processCategory)) {
+            missingCategories.push(process.processCategory)
+          }
+        }
+      })
+      
+      // 如果发现缺失的品类，自动添加
+      if (missingCategories.length > 0) {
+        const colors = ['primary', 'success', 'warning', 'danger', 'info']
+        missingCategories.forEach((categoryName, index) => {
+          const newTag = {
+            id: Date.now() + index,
+            name: categoryName,
+            type: colors[index % colors.length],
+            description: `${categoryName}相关工艺`,
+            createTime: new Date().toLocaleString()
+          }
+          processCategoryTags.value.push(newTag)
+        })
+        
+        // 保存更新后的标签数据
+        saveCategoryTagsToStorage(category, processCategoryTags.value)
+        
+        console.log(`自动修复了 ${missingCategories.length} 个缺失的品类标签:`, missingCategories)
+      }
+      
+      // 检查是否有标签没有对应的工艺（除了用户自定义的）
+      const processCategories = [...new Set(currentProcesses.map(p => p.processCategory).filter(Boolean))]
+      const unusedTags = currentTags.filter(tag => !processCategories.includes(tag.name))
+      
+      if (unusedTags.length > 0) {
+        console.log(`发现 ${unusedTags.length} 个未使用的品类标签:`, unusedTags.map(t => t.name))
+      }
     }
     
     const handleSearch = () => {
@@ -588,6 +680,8 @@ export default {
     const saveProcess = () => {
       saving.value = true
       setTimeout(() => {
+        const category = route.params.category
+        
         if (isEdit.value) {
           const index = processes.value.findIndex(item => item.id === processForm.id)
           if (index !== -1) {
@@ -598,14 +692,34 @@ export default {
           const newProcess = {
             ...processForm,
             id: Date.now(),
-            category: route.params.category,
+            category: category,
             updateTime: new Date().toLocaleString()
           }
           processes.value.push(newProcess)
           ElMessage.success('工艺添加成功')
         }
         
-        saveProcessesToStorage(route.params.category, processes.value)
+        // 保存工艺数据
+        saveProcessesToStorage(category, processes.value)
+        
+        // 检查并更新品类标签
+        if (processForm.processCategory) {
+          const existingTag = processCategoryTags.value.find(tag => tag.name === processForm.processCategory)
+          if (!existingTag) {
+            // 如果品类标签不存在，自动创建
+            const colors = ['primary', 'success', 'warning', 'danger', 'info']
+            const newTag = {
+              id: Date.now() + 1,
+              name: processForm.processCategory,
+              type: colors[processCategoryTags.value.length % colors.length],
+              description: `${processForm.processCategory}相关工艺`,
+              createTime: new Date().toLocaleString()
+            }
+            processCategoryTags.value.push(newTag)
+            saveCategoryTagsToStorage(category, processCategoryTags.value)
+          }
+        }
+        
         handleSearch()
         dialogVisible.value = false
         saving.value = false
@@ -862,7 +976,7 @@ export default {
       categoryRules,
       processRules,
       
-      // 计算属�?
+      // 计算属性
       dialogTitle,
       pageTitle,
       cardTitle,
@@ -894,7 +1008,10 @@ export default {
       getTypeLabel,
       getCategoryTagType,
       resetCategoryForm,
-      generateProcessName
+      generateProcessName,
+      
+      // 添加数据一致性检查方法到返回对象
+      validateAndFixCategoryConsistency
     }
   }
 }
