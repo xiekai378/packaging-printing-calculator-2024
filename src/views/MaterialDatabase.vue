@@ -495,10 +495,11 @@ export default {
       return ['paper', 'specialty-paper'].includes(category)
     })
     
-    // 从实际数据中提取品类标签
+    // 从实际数据中提取品类标签 - 修复版本
     const generateCategoryTagsFromData = (currentCategory) => {
-      const categoryMaterials = mockMaterials.materials.filter(item => item.category === currentCategory)
-      const uniqueCategories = [...new Set(categoryMaterials.map(item => item.materialCategory).filter(Boolean))]
+      // 获取当前分类下的所有材料（包括localStorage中的数据）
+      const storedMaterials = getStoredMaterials(currentCategory)
+      const uniqueCategories = [...new Set(storedMaterials.map(item => item.materialCategory).filter(Boolean))]
       const colors = ['primary', 'success', 'warning', 'danger', 'info']
       
       // 确保品类标签与实际材料数据完全对应
@@ -511,12 +512,12 @@ export default {
       }))
     }
     
-    // 从localStorage加载材料品类标签
+    // 从localStorage加载材料品类标签 - 修复版本
     const getStoredCategoryTags = (currentCategory) => {
       const storageKey = `materialCategoryTags_${currentCategory}`
       const stored = localStorage.getItem(storageKey)
       
-      // 获取当前实际材料数据中的品类
+      // 获取当前实际材料数据中的品类（基于最新的材料数据）
       const actualCategories = generateCategoryTagsFromData(currentCategory)
       
       if (stored) {
@@ -525,11 +526,17 @@ export default {
         const actualCategoryNames = actualCategories.map(cat => cat.name)
         const mergedTags = []
         
-        // 先添加实际存在的品类
+        // 先添加实际存在的品类，保持用户自定义的属性
         actualCategories.forEach(actualCat => {
           const existingTag = storedTags.find(tag => tag.name === actualCat.name)
           if (existingTag) {
-            mergedTags.push(existingTag)
+            // 保持用户自定义的颜色和描述
+            mergedTags.push({
+              ...actualCat,
+              type: existingTag.type,
+              description: existingTag.description,
+              createTime: existingTag.createTime
+            })
           } else {
             mergedTags.push(actualCat)
           }
@@ -542,10 +549,16 @@ export default {
           }
         })
         
+        // 立即保存合并后的结果，确保数据同步
+        saveCategoryTagsToStorage(currentCategory, mergedTags)
+        
         return mergedTags
       }
       
-      return actualCategories
+      // 如果没有存储的数据，直接返回从材料数据中提取的品类
+      const defaultTags = actualCategories
+      saveCategoryTagsToStorage(currentCategory, defaultTags)
+      return defaultTags
     }
     
     // 从localStorage加载材料数据
@@ -596,7 +609,7 @@ export default {
       }
     }
     
-    // 方法
+    // 方法 - 修复版本
     const loadMaterials = () => {
       loading.value = true
       setTimeout(() => {
@@ -604,9 +617,60 @@ export default {
         materials.value = getStoredMaterials(category)
         filteredMaterials.value = [...materials.value]
         pagination.total = materials.value.length
+        
+        // 确保品类标签与材料数据同步
         materialCategoryTags.value = getStoredCategoryTags(category)
+        
+        // 验证数据一致性并修复不匹配的问题
+        validateAndFixCategoryConsistency(category)
+        
         loading.value = false
       }, 500)
+    }
+    
+    // 验证并修复品类数据一致性
+    const validateAndFixCategoryConsistency = (category) => {
+      const currentMaterials = materials.value
+      const currentTags = materialCategoryTags.value
+      const tagNames = currentTags.map(tag => tag.name)
+      
+      // 检查是否有材料的品类不在标签列表中
+      const missingCategories = []
+      currentMaterials.forEach(material => {
+        if (material.materialCategory && !tagNames.includes(material.materialCategory)) {
+          if (!missingCategories.includes(material.materialCategory)) {
+            missingCategories.push(material.materialCategory)
+          }
+        }
+      })
+      
+      // 如果发现缺失的品类，自动添加
+      if (missingCategories.length > 0) {
+        const colors = ['primary', 'success', 'warning', 'danger', 'info']
+        missingCategories.forEach((categoryName, index) => {
+          const newTag = {
+            id: Date.now() + index,
+            name: categoryName,
+            type: colors[index % colors.length],
+            description: `${categoryName}相关材料`,
+            createTime: new Date().toLocaleString()
+          }
+          materialCategoryTags.value.push(newTag)
+        })
+        
+        // 保存更新后的标签数据
+        saveCategoryTagsToStorage(category, materialCategoryTags.value)
+        
+        console.log(`自动修复了 ${missingCategories.length} 个缺失的品类标签:`, missingCategories)
+      }
+      
+      // 检查是否有标签没有对应的材料（除了用户自定义的）
+      const materialCategories = [...new Set(currentMaterials.map(m => m.materialCategory).filter(Boolean))]
+      const unusedTags = currentTags.filter(tag => !materialCategories.includes(tag.name))
+      
+      if (unusedTags.length > 0) {
+        console.log(`发现 ${unusedTags.length} 个未使用的品类标签:`, unusedTags.map(t => t.name))
+      }
     }
     
     const handleSearch = () => {
@@ -652,6 +716,8 @@ export default {
     const saveMaterial = () => {
       saving.value = true
       setTimeout(() => {
+        const category = route.params.category
+        
         if (isEdit.value) {
           const index = materials.value.findIndex(item => item.id === materialForm.id)
           if (index !== -1) {
@@ -662,14 +728,34 @@ export default {
           const newMaterial = {
             ...materialForm,
             id: Date.now(),
-            category: route.params.category,
+            category: category,
             updateTime: new Date().toLocaleString()
           }
           materials.value.push(newMaterial)
           ElMessage.success('材料添加成功')
         }
         
-        saveMaterialsToStorage(route.params.category, materials.value)
+        // 保存材料数据
+        saveMaterialsToStorage(category, materials.value)
+        
+        // 检查并更新品类标签
+        if (materialForm.materialCategory) {
+          const existingTag = materialCategoryTags.value.find(tag => tag.name === materialForm.materialCategory)
+          if (!existingTag) {
+            // 如果品类标签不存在，自动创建
+            const colors = ['primary', 'success', 'warning', 'danger', 'info']
+            const newTag = {
+              id: Date.now() + 1,
+              name: materialForm.materialCategory,
+              type: colors[materialCategoryTags.value.length % colors.length],
+              description: `${materialForm.materialCategory}相关材料`,
+              createTime: new Date().toLocaleString()
+            }
+            materialCategoryTags.value.push(newTag)
+            saveCategoryTagsToStorage(category, materialCategoryTags.value)
+          }
+        }
+        
         handleSearch()
         dialogVisible.value = false
         saving.value = false
